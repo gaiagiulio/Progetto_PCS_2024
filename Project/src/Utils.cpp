@@ -4,10 +4,12 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <string>
 
 using namespace std;
 using namespace Eigen;
 
+/** Restituisce vettore normale al piano passante per i 3 punti **/
 Vector3d NormalToPlane(Vector3d& p0,Vector3d& p1,Vector3d& p2)
 {
     Vector3d v1 = p1-p0;
@@ -116,7 +118,7 @@ Vector3d IntersectionFractureWithLine(DFNLibrary::DFN& dfn, const unsigned int &
         }
     }
 
-    // gestione dei casi dove uiìnico punto di intersezione con r è il primo vertice (A) e dove la seconda intersezione è tra il primo e l'ultimo vertice (B)
+    // gestione dei casi dove unico punto di intersezione con r è il primo vertice (A) e dove la seconda intersezione è tra il primo e l'ultimo vertice (B)
     if ((val_q1==true) && (no_intersect==false))
         if (val_q2==false)
         {
@@ -138,6 +140,40 @@ Vector3d IntersectionFractureWithLine(DFNLibrary::DFN& dfn, const unsigned int &
     if (no_intersect == true)
         result[2]=0;
     return result;
+}
+
+/** Inserisce l'id della traccia nella lista delle tracce passanti o non per ciascuna delle fratture coinvolte (già ordinate per lunghezza descrescente **/
+void InsertSortedTraces(DFNLibrary::DFN& dfn, const unsigned int & frac, const unsigned int & id_tr, const bool & Tips, const double & length)
+{
+    bool inserted = false;
+    if (Tips) // traccia NON passante su frattura
+    {
+        //inserisco in NP_Traces[frac] in base a lunghezza
+        for (auto it = dfn.NP_Traces[frac].begin(); it != dfn.NP_Traces[frac].end();it++)
+        {
+            if (length > dfn.LengthTraces[*(it)])
+            {
+                dfn.NP_Traces[frac].insert(it,id_tr);
+                inserted = true;
+            }
+        }
+        if (not inserted)
+            dfn.NP_Traces[frac].push_back(id_tr);
+    }
+    else // traccia passante su frattura
+    {
+        //inserisco in P_Traces[frac] in base a lunghezza
+        for (auto it = dfn.P_Traces[frac].begin(); it != dfn.P_Traces[frac].end();it++)
+        {
+            if (length > dfn.LengthTraces[*(it)])
+            {
+                dfn.P_Traces[frac].insert(it,id_tr);
+                inserted = true;
+            }
+        }
+        if (not inserted)
+            dfn.P_Traces[frac].push_back(id_tr);
+    }
 }
 
 namespace DFNLibrary{
@@ -217,6 +253,18 @@ void calculateTraces(DFN& dfn)
 {
     // CALCOLARE TRACCE incrociando tutte le fratture a due a due
 
+    // Reserve dei vettori associati alle tracce: Scelgo numero grande perchè non so quante saranno.
+    const unsigned int N = 5000; // crea funzione sensata che stimi una costante da cui partire in base al numero di fratture
+
+    dfn.IdTraces.reserve(N);
+    dfn.FractureTraces.reserve(N);
+    dfn.TipsTraces.reserve(N);
+    dfn.VerticesTraces.reserve(N);
+    dfn.LengthTraces.reserve(N);
+
+    dfn.P_Traces.resize(dfn.NumberFractures); // NB: check se serve inizializzare con le liste vuote
+    dfn.NP_Traces.resize(dfn.NumberFractures);
+
     for (unsigned int i=0; i < dfn.NumberFractures; i++)
     {
         unsigned int frac1 = dfn.IdFractures[i] ;
@@ -267,18 +315,178 @@ void calculateTraces(DFN& dfn)
             if (int2[2]<numeric_limits<double>::epsilon()) // uso tol con epsiolon di macchina perchè è in vettore di double (anche se non dovrei avere problemi)
                 break;
 
-            // Calcolo tracce
+            // CALCOLO TRACCE (calcolo estremi tracce e per ciascuna frattura se siano passanti o meno) --> uso le ascisse curvilinee
 
+            // I1=[q1,q2] intervallo di intersezione della retta con la frattura 1
+            double q1 = min(int1[0],int1[1]);
+            double q2 = max(int1[0],int1[1]);
+            // I2=[q3,q4] intervallo di intersezione della retta con la frattura 2
+            double q3 = min(int2[0],int2[1]);
+            double q4 = max(int2[0],int2[1]);
 
+            bool Tips1 = false; // false= traccia passante per la frattura 1, false= traccia NON passante per la frattura 1
+            bool Tips2 = false; // false= traccia passante per la frattura 2, false= traccia NON passante per la frattura 2
 
-            // se entrambe ok calcola traccia usando ascissa curvilinea
-            // classifica
+            // Calcolo (se esiste) traccia di estremi P1 e P2 (ascisse curvilinee su retta r)
+            double P1;
+            double P2;
+
+            if (abs(min(q1,q3)-q1)/max(max(abs(min(q1,q3)),abs(q1)),1.) < dfn.tolerance) // min(q1,q3)=q1
+            {
+                if (abs(min(q2,q3)-q2)/max(max(abs(min(q2,q3)),abs(q2)),1.) < dfn.tolerance) // min(q2,q3)=q2
+                    break;
+                else // min(q2,q3)=q3
+                {
+                    P1 = q3;
+                    if (abs(q1-q3)/max(max(abs(q1),abs(q3)),1.)<dfn.tolerance) // q1 = q3
+                    {
+                        bool test3 = (abs(q2-q4)/max(max(abs(q2),abs(q4)),1.)<dfn.tolerance); // q2 = q4
+                        if (abs(min(q2,q4)-q2)/max(max(abs(min(q2,q4)),abs(q2)),1.) < dfn.tolerance) // min(q2,q4)=q2
+                        {
+                            P2 = q2;
+                            if (not test3) // q2 != q4
+                                Tips2 = true;
+                        }
+                        else // min(q2,q4)=q4
+                        {
+                            P2 = q4;
+                            if (not test3) // q2 != q4
+                                Tips1 = true;
+                        }
+                    }
+                    else // q1 != q3
+                    {
+                        Tips1 = true;
+                        if (abs(min(q2,q4)-q2)/max(max(abs(min(q2,q4)),abs(q2)),1.) < dfn.tolerance) // min(q2,q4)=q2
+                        {
+                            if (abs(q2-q3)/max(max(abs(q2),abs(q3)),1.)<dfn.tolerance) // q2 = q3
+                                break;
+                            else // q2 != q3
+                            {
+                                P2 = q2;
+                                if (abs(q2-q4)/max(max(abs(q2),abs(q4)),1.)>dfn.tolerance) // q2 != q4
+                                    Tips2 = true;
+                            }
+                        }
+                        else // min(q2,q4)=q4
+                            P2 = q4;
+                    }
+                }
+            }
+            else // min(q1,q3)=q3
+            {
+                if (abs(min(q1,q4)-q4)/max(max(abs(min(q1,q4)),abs(q4)),1.) < dfn.tolerance) // min(q1,q4)=q4
+                    break;
+                else // min(q1,q4)=q1
+                {
+                    P1 = q1;
+                    if (abs(q1-q3)/max(max(abs(q1),abs(q3)),1.)<dfn.tolerance) // q1 = q3
+                    {
+                        bool test3 = (abs(q2-q4)/max(max(abs(q2),abs(q4)),1.)<dfn.tolerance); // q2 = q4
+                        if (abs(min(q2,q4)-q4)/max(max(abs(min(q2,q4)),abs(q4)),1.) < dfn.tolerance) // min(q2,q4)=q4
+                        {
+                            P2 = q4;
+                            if (not test3) // q2 != q4
+                                Tips1 = true;
+                        }
+                        else // min(q2,q4)=q2
+                        {
+                            P2 = q2;
+                            if (not test3) // q2 != q4
+                                Tips2 = true;
+                        }
+                    }
+                    else // q1 != q3
+                    {
+                        Tips2 = true;
+                        if (abs(min(q2,q4)-q4)/max(max(abs(min(q2,q4)),abs(q4)),1.) < dfn.tolerance) // min(q2,q4)=q4
+                        {
+                            if (abs(q2-q3)/max(max(abs(q2),abs(q3)),1.)<dfn.tolerance) // q2 = q3
+                                break;
+                            else // q2 != q3
+                            {
+                                P2 = q4;
+                                if (abs(q2-q4)/max(max(abs(q2),abs(q4)),1.)>dfn.tolerance) // q2 != q4
+                                    Tips1 = true;
+                            }
+                        }
+                        else // min(q2,q4)=q2
+                            P2 = q2;
+                    }
+                }
+            }
+
+            // Inserisci traccia trovata (se non è stata trovata si è incappati in break)
+            dfn.NumberTraces += 1;
+            unsigned int id_trac = dfn.NumberTraces-1;
+            dfn.IdTraces.push_back(id_trac); // id di traccia i-esima è i-1 (indice di traccia nelle strutture associate)
+            dfn.FractureTraces.push_back({frac1,frac2});
+            dfn.TipsTraces.push_back({Tips1,Tips2});
+            Vector3d T1 = P0 +P1*t;
+            Vector3d T2 = P0 +P2*t;
+            Matrix<double,3,2> estremi_traccia{{T1[0],T2[0]},{T1[1],T2[1]},{T1[2],T2[2]}};
+            dfn.VerticesTraces.push_back(estremi_traccia);
+            double length = (T1[0]-T2[0])*(T1[0]-T2[0])+(T1[1]-T2[1])*(T1[1]-T2[1])+(T1[2]-T2[2])*(T1[2]-T2[2]);
+            dfn.LengthTraces.push_back(length);
+
+            InsertSortedTraces(dfn, frac1, id_trac, Tips1, length);
+            InsertSortedTraces(dfn, frac2, id_trac, Tips2, length);
+
+            // NB: controlla se conviene con funzione
+
         }
+
+
+
     }
 
 
 
 }
+
+
+void PrintTraces(const string& outputFile, DFN& dfn)
+{
+    ofstream output(outputFile);
+
+    output << "# Number of Traces" << "\n" << dfn.NumberTraces << endl;
+    output << "# TraceId; FractureId1; FractureId2; X1; Y1; Z1; X2; Y2; Z2 " << endl;
+
+    string sep = "; " ;
+    for (unsigned int i=0; i <dfn.NumberTraces; i++)
+        output << dfn.IdTraces[i] << sep << (dfn.FractureTraces[i])[0] << sep << (dfn.FractureTraces[i])[1] << sep <<
+            (dfn.VerticesTraces[i])(0,0) << sep << (dfn.VerticesTraces[i])(1,0) << sep << (dfn.VerticesTraces[i])(2,0) << sep <<
+            (dfn.VerticesTraces[i])(0,1) << sep << (dfn.VerticesTraces[i])(1,1) << sep << (dfn.VerticesTraces[i])(2,1) << endl ;
+
+    output.close();
+}
+
+
+void PrintSortedFractureTraces(const string& outputFile, DFN& dfn)
+{
+    ofstream output(outputFile);
+
+    string sep = "; " ;
+    for (unsigned int i=0; i <dfn.NumberFractures; i++)
+    {
+        unsigned int num_tot = dfn.P_Traces[i].size() + dfn.NP_Traces[i].size(); // #tracce= #passanti + #NONpassanti
+        unsigned int id_frac = dfn.IdFractures[i];
+        output << "# FractureId; NumTraces \n" << id_frac << sep << num_tot << endl;
+        output << "# TraceId; Tips; Length" << endl;
+
+        // Stampa fratture passanti
+        for (auto it = dfn.P_Traces[id_frac].begin(); it != dfn.P_Traces[id_frac].end();it++)
+            output << *(it) << sep << false << sep << dfn.LengthTraces[*(it)] ;
+
+        // Stampa fratture non passanti
+        for (auto it = dfn.NP_Traces[id_frac].begin(); it != dfn.NP_Traces[id_frac].end();it++)
+            output << *(it) << sep << true << sep << dfn.LengthTraces[*(it)] ;
+    }
+
+    output.close();
+}
+
+
 
 }
 

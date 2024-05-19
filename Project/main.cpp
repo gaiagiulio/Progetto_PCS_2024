@@ -11,5 +11,20 @@ int main()
 
     bool operazione = ImportFractures("D:/Gaia/Politecnico/Programmazione e calcolo scientifico/Progetto_PCS_2024/Project/DFN/FR3_data.txt", dfn);
     std::cout << operazione << std::endl;
+
+    calculateTraces(dfn);
+    PrintTraces("PROVA_output_1.txt", dfn);
+    PrintSortedFractureTraces("PROVA_output_2.txt", dfn);
+
+
+    /**std::list<int> l={1,2,3,4,5,6};
+    for (auto it = l.begin(); it != l.end();it++)
+    {
+        std::cout << *(it) << std::endl;
+    }**/
+    /**for (int n : l)
+    {
+        std::cout << n << std::endl;
+    }; **/
     return 0;
 }

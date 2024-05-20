@@ -8,11 +8,13 @@ int main()
 {
     DFN dfn;
     // FAI INSERIRE TOLLERANZA
+    // fai inserire a utente quale file leggere
 
-    bool operazione = ImportFractures("D:/Gaia/Politecnico/Programmazione e calcolo scientifico/Progetto_PCS_2024/Project/DFN/FR3_data.txt", dfn);
-    std::cout << operazione << std::endl;
+    bool operazione = ImportFractures("D:/Gaia/Politecnico/Programmazione e calcolo scientifico/Progetto_PCS_2024/Project/DFN/FR10_data.txt", dfn);
+    std::cout << "N fratture: " << dfn.NumberFractures << std::endl;
 
     calculateTraces(dfn);
+
     PrintTraces("PROVA_output_1.txt", dfn);
     PrintSortedFractureTraces("PROVA_output_2.txt", dfn);
 

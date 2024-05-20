@@ -151,7 +151,7 @@ void InsertSortedTraces(DFNLibrary::DFN& dfn, const unsigned int & frac, const u
         //inserisco in NP_Traces[frac] in base a lunghezza
         for (auto it = dfn.NP_Traces[frac].begin(); it != dfn.NP_Traces[frac].end();it++)
         {
-            if (length > dfn.LengthTraces[*(it)])
+            if ((length > dfn.LengthTraces[*(it)]) && (not inserted))
             {
                 dfn.NP_Traces[frac].insert(it,id_tr);
                 inserted = true;
@@ -165,7 +165,7 @@ void InsertSortedTraces(DFNLibrary::DFN& dfn, const unsigned int & frac, const u
         //inserisco in P_Traces[frac] in base a lunghezza
         for (auto it = dfn.P_Traces[frac].begin(); it != dfn.P_Traces[frac].end();it++)
         {
-            if (length > dfn.LengthTraces[*(it)])
+            if ((length > dfn.LengthTraces[*(it)]) && (not inserted))
             {
                 dfn.P_Traces[frac].insert(it,id_tr);
                 inserted = true;
@@ -277,7 +277,7 @@ void calculateTraces(DFN& dfn)
         Vector3d n1 = NormalToPlane(p10,p11,p12); // vettore normale a piano 1
         double d1=n1.dot(p10); // piano 1 x: dot(n1,x)=d1
 
-        for (unsigned int j=0; (j < dfn.NumberFractures) && (j>i); j++)
+        for (unsigned int j=i+1; j < dfn.NumberFractures; j++)
         {
             unsigned int frac2 = dfn.IdFractures[j];
             Matrix3Xd& ver2 = dfn.VerticesFractures[frac2]; // matrice dei vertici della frattura 2
@@ -309,11 +309,11 @@ void calculateTraces(DFN& dfn)
             // Frattura 1
             Vector3d int1= IntersectionFractureWithLine(dfn, frac1, P0, t, n1); // vettore con (q1,q2,flag) con q1 e q2 ascisse di intersezioni se esistono
             if (int1[2]<numeric_limits<double>::epsilon()) // uso tol con epsiolon di macchina perchè è in vettore di double (anche se non dovrei avere problemi)
-                break; // passo a considerare altra coppia di fratture se una non interseca la retta
+                continue; // passo a considerare altra coppia di fratture se una non interseca la retta
             //Frattura 2
             Vector3d int2= IntersectionFractureWithLine(dfn, frac2, P0, t, n2); // vettore con (q1,q2,flag) con q1 e q2 ascisse di intersezioni se esistono
             if (int2[2]<numeric_limits<double>::epsilon()) // uso tol con epsiolon di macchina perchè è in vettore di double (anche se non dovrei avere problemi)
-                break;
+                continue;
 
             // CALCOLO TRACCE (calcolo estremi tracce e per ciascuna frattura se siano passanti o meno) --> uso le ascisse curvilinee
 
@@ -334,7 +334,7 @@ void calculateTraces(DFN& dfn)
             if (abs(min(q1,q3)-q1)/max(max(abs(min(q1,q3)),abs(q1)),1.) < dfn.tolerance) // min(q1,q3)=q1
             {
                 if (abs(min(q2,q3)-q2)/max(max(abs(min(q2,q3)),abs(q2)),1.) < dfn.tolerance) // min(q2,q3)=q2
-                    break;
+                    continue;
                 else // min(q2,q3)=q3
                 {
                     P1 = q3;
@@ -360,7 +360,7 @@ void calculateTraces(DFN& dfn)
                         if (abs(min(q2,q4)-q2)/max(max(abs(min(q2,q4)),abs(q2)),1.) < dfn.tolerance) // min(q2,q4)=q2
                         {
                             if (abs(q2-q3)/max(max(abs(q2),abs(q3)),1.)<dfn.tolerance) // q2 = q3
-                                break;
+                                continue;
                             else // q2 != q3
                             {
                                 P2 = q2;
@@ -376,7 +376,7 @@ void calculateTraces(DFN& dfn)
             else // min(q1,q3)=q3
             {
                 if (abs(min(q1,q4)-q4)/max(max(abs(min(q1,q4)),abs(q4)),1.) < dfn.tolerance) // min(q1,q4)=q4
-                    break;
+                    continue;
                 else // min(q1,q4)=q1
                 {
                     P1 = q1;
@@ -402,7 +402,7 @@ void calculateTraces(DFN& dfn)
                         if (abs(min(q2,q4)-q4)/max(max(abs(min(q2,q4)),abs(q4)),1.) < dfn.tolerance) // min(q2,q4)=q4
                         {
                             if (abs(q2-q3)/max(max(abs(q2),abs(q3)),1.)<dfn.tolerance) // q2 = q3
-                                break;
+                                continue;
                             else // q2 != q3
                             {
                                 P2 = q4;
@@ -416,7 +416,7 @@ void calculateTraces(DFN& dfn)
                 }
             }
 
-            // Inserisci traccia trovata (se non è stata trovata si è incappati in break)
+            // Inserisci traccia trovata (se non è stata trovata si è incappati in continue)
             dfn.NumberTraces += 1;
             unsigned int id_trac = dfn.NumberTraces-1;
             dfn.IdTraces.push_back(id_trac); // id di traccia i-esima è i-1 (indice di traccia nelle strutture associate)
@@ -433,7 +433,6 @@ void calculateTraces(DFN& dfn)
             InsertSortedTraces(dfn, frac2, id_trac, Tips2, length);
 
             // NB: controlla se conviene con funzione
-
         }
 
 
@@ -476,11 +475,11 @@ void PrintSortedFractureTraces(const string& outputFile, DFN& dfn)
 
         // Stampa fratture passanti
         for (auto it = dfn.P_Traces[id_frac].begin(); it != dfn.P_Traces[id_frac].end();it++)
-            output << *(it) << sep << false << sep << dfn.LengthTraces[*(it)] ;
+            output << *(it) << sep << false << sep << dfn.LengthTraces[*(it)] << endl ;
 
         // Stampa fratture non passanti
         for (auto it = dfn.NP_Traces[id_frac].begin(); it != dfn.NP_Traces[id_frac].end();it++)
-            output << *(it) << sep << true << sep << dfn.LengthTraces[*(it)] ;
+            output << *(it) << sep << true << sep << dfn.LengthTraces[*(it)] << endl ;
     }
 
     output.close();

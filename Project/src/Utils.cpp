@@ -252,9 +252,17 @@ bool ImportFractures(const string& filepath, DFN& dfn)
 void calculateTraces(DFN& dfn)
 {
     // CALCOLARE TRACCE incrociando tutte le fratture a due a due
-
-    // Reserve dei vettori associati alle tracce: Scelgo numero grande perchè non so quante saranno.
-    const unsigned int N = 5000; // crea funzione sensata che stimi una costante da cui partire in base al numero di fratture
+    unsigned int num_fractures = dfn.NumberFractures;
+    // Reserve dei vettori associati alle tracce: Scelgo numero grande perchè non so quante saranno. (a seguire metodo banale per regolare N grande in base al numero di fratture nel DFN)
+    unsigned int N=0;
+    if (num_fractures <= 20)
+        N = ceil(num_fractures*num_fractures/2) ; //numero di fratture se ciascuna si intersecasse con tutte le altre
+    else if (num_fractures <= 50)
+        N = ceil(num_fractures*num_fractures/4); //numero di fratture se ciascuna si intersecasse con metà delle altre
+    else if (num_fractures <= 200)
+        N = ceil(num_fractures*num_fractures/10); //numero di fratture se ciascuna si intersecasse con 1/5 delle altre
+    else
+        N = 5000;
 
     dfn.IdTraces.reserve(N);
     dfn.FractureTraces.reserve(N);
@@ -262,35 +270,145 @@ void calculateTraces(DFN& dfn)
     dfn.VerticesTraces.reserve(N);
     dfn.LengthTraces.reserve(N);
 
-    dfn.P_Traces.resize(dfn.NumberFractures); // NB: check se serve inizializzare con le liste vuote
-    dfn.NP_Traces.resize(dfn.NumberFractures);
+    dfn.P_Traces.resize(num_fractures); // NB: check se serve inizializzare con le liste vuote
+    dfn.NP_Traces.resize(num_fractures);
 
-    for (unsigned int i=0; i < dfn.NumberFractures; i++)
+    // Variabile interna alla funzione, di supporto, con dati da NON ricalcolare per ogni frattura (calcolati solo per i=0)
+    // normale al piano n (Vector3d), d (double), centroide (Vector3d), raggio max (double) --> Vector8d
+    vector<Vector<double,8>> FractureUsefulData;
+    FractureUsefulData.resize(num_fractures);
+
+    for (unsigned int i=0; i <num_fractures; i++)
     {
         unsigned int frac1 = dfn.IdFractures[i] ;
         Matrix3Xd& ver1 = dfn.VerticesFractures[frac1]; // matrice dei vertici della frattura 1
-        //Cerco il piano della frattura 1 : calcolo prendendo i primi tre vertici
-        Vector3d p10 = ver1(all,0);
-        Vector3d p11 = ver1(all,1);
-        Vector3d p12 = ver1(all,2);
+        //Cerco il piano della frattura 1 : calcolo prendendo i primi tre vertici (per la prima iterazione, sennò lo leggo da FractureUsefulData)
+        Vector3d n1;
+        double d1;
+        if (i==0)
+        {
+            Vector3d p10 = ver1(all,0);
+            Vector3d p11 = ver1(all,1);
+            Vector3d p12 = ver1(all,2);
 
-        Vector3d n1 = NormalToPlane(p10,p11,p12); // vettore normale a piano 1
-        double d1=n1.dot(p10); // piano 1 x: dot(n1,x)=d1
+            n1 = NormalToPlane(p10,p11,p12); // vettore normale a piano 1
+            d1 = n1.dot(p10); // piano 1 x: dot(n1,x)=d1
+        }
+        else
+        {
+            n1 << FractureUsefulData[i][0],FractureUsefulData[i][1],FractureUsefulData[i][2];
+            d1 =  FractureUsefulData[i][3];
+        }
 
-        for (unsigned int j=i+1; j < dfn.NumberFractures; j++)
+        // Calcolo centroide e raggio per frattura 1 (se i=0 lo calcolo, sennò lo leggo da FractureUsefulData[i])
+        Vector3d c1; // centroide frattura 1 (baricentro geometrico)
+        double radius1=0; // raggio massimo di sfera contenente la frattura 1, di centro c1
+
+        if (i==0)
+        {
+            unsigned int numVertices= ver1.cols();
+            c1 << 0,0,0;
+            for (unsigned int vert=0; vert < numVertices; vert++)
+            {
+                for (unsigned int coor=0; coor<3; coor++)
+                    c1[coor] += ver1(coor,vert);
+            }
+            c1 = c1/numVertices;
+
+            for (unsigned int vert=0; vert < numVertices; vert++)
+            {
+                double r_vert=(ver1(0,vert)-c1[0])*(ver1(0,vert)-c1[0])+(ver1(1,vert)-c1[1])*(ver1(1,vert)-c1[1])+(ver1(2,vert)-c1[2])*(ver1(2,vert)-c1[2]); // quadrato della distanza del vertice da c1
+                if (r_vert > radius1)
+                    radius1 = r_vert;
+            }
+            radius1 = sqrt(radius1); // raggio massimo
+        }
+        else
+        {
+            c1 << FractureUsefulData[i][4],FractureUsefulData[i][5],FractureUsefulData[i][6];
+            radius1 = FractureUsefulData[i][7];
+        }
+
+        for (unsigned int j=i+1; j <num_fractures; j++)
         {
             unsigned int frac2 = dfn.IdFractures[j];
             Matrix3Xd& ver2 = dfn.VerticesFractures[frac2]; // matrice dei vertici della frattura 2
 
-            // CONTROLLO PER ESCLUSIONE CASI
+            // CONTROLLO PER ESCLUSIONE CASI (lo attivo solo per i>0, perchè devo calcolare tutti i piani)
 
-            //Cerco il piano della frattura 2 : calcolo prendendo i primi tre vertici
-            Vector3d p20 = ver2(all,0);
-            Vector3d p21 = ver2(all,1);
-            Vector3d p22 = ver2(all,2);
+            // Calcolo centroide e raggio per frattura 2 (se i=0 lo calcolo, sennò lo leggo da FractureUsefulData[j])
+            Vector3d c2; // centroide frattura 2
+            double radius2=0; // raggio massimo di sfera contenente la frattura 2, di centro c2
 
-            Vector3d n2 = NormalToPlane(p20,p21,p22); // vettore normale a piano 2
-            double d2=n2.dot(p20); // piano 2 x: dot(n2,x)=d2
+            if (i==0)
+            {
+                unsigned int numVertices= ver2.cols();
+                c2 << 0,0,0;
+                for (unsigned int vert=0; vert < numVertices; vert++)
+                {
+                    for (unsigned int coor=0; coor<3; coor++)
+                        c2[coor] += ver2(coor,vert);
+                }
+                c2 = c2/numVertices;
+
+                for (unsigned int vert=0; vert < numVertices; vert++)
+                {
+                    double r_vert=(ver2(0,vert)-c2[0])*(ver2(0,vert)-c2[0])+(ver2(1,vert)-c2[1])*(ver2(1,vert)-c2[1])+(ver2(2,vert)-c2[2])*(ver2(2,vert)-c2[2]); // quadrato della distanza del vertice da c1
+                    if (r_vert > radius2)
+                        radius2 = r_vert;
+                }
+                radius2 = sqrt(radius2); // raggio massimo
+                // Inserisco in FractureUsefulData[j] (per iterazioni successive)
+                for (unsigned int index=4; index<7; index++)
+                    FractureUsefulData[j][index] = c2[index-4];
+                FractureUsefulData[j][7] = radius2;
+
+            }
+            else
+            {
+                c2 << FractureUsefulData[j][4],FractureUsefulData[j][5],FractureUsefulData[j][6];
+                radius2 = FractureUsefulData[j][7];
+            }
+
+            // Meccanismo di esclusione: passo a iterazione successiva se le due sfere non si intersecano
+            // NB: lo attivo solo per i>0, perchè devo calcolare tutti i piani. Per 0 lo attivo in un secondo momento.
+            if (i>0)
+            {
+                double dist_centroids = (c1[0]-c2[0])*(c1[0]-c2[0])+(c1[1]-c2[1])*(c1[1]-c2[1])+(c1[2]-c2[2])*(c1[2]-c2[2]);
+                if (dist_centroids > radius1*radius1 + radius2*radius2 + 2*radius1*radius2) // d>r1+r2
+                    continue;
+            }
+
+            //Cerco il piano della frattura 2 : calcolo prendendo i primi tre vertici (per i=0, sennò lo leggo da FractureUsefulData)
+
+            Vector3d n2; // vettore normale a piano 2
+            double d2; // piano 2 x: dot(n2,x)=d2
+            if (i==0)
+            {
+                Vector3d p20 = ver2(all,0);
+                Vector3d p21 = ver2(all,1);
+                Vector3d p22 = ver2(all,2);
+
+                n2 = NormalToPlane(p20,p21,p22);
+                d2 = n2.dot(p20);
+                // Inserisco in FractureUsefulData[j] (per iterazioni successive)
+                for (unsigned int index=0; index<3; index++)
+                    FractureUsefulData[j][index] = n2[index];
+                FractureUsefulData[j][3] = d2;
+            }
+            else
+            {
+                n2 << FractureUsefulData[j][0],FractureUsefulData[j][1],FractureUsefulData[j][2];
+                d2 =  FractureUsefulData[j][3];
+            }
+
+            if (i==0) // controllo per esclusione alla prima iterazione
+            {
+                double dist_centroids = (c1[0]-c2[0])*(c1[0]-c2[0])+(c1[1]-c2[1])*(c1[1]-c2[1])+(c1[2]-c2[2])*(c1[2]-c2[2]);
+                if (dist_centroids > radius1*radius1 + radius2*radius2 + 2*radius1*radius2) // d>r1+r2
+                    continue;
+            }
+
 
             // Calcola retta d'intersezione tra piani r: x = P0 +st
 

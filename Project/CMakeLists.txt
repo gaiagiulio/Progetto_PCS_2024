@@ -44,6 +44,16 @@ list(APPEND ${CMAKE_PROJECT_NAME}_sources ${src_sources})
 list(APPEND ${CMAKE_PROJECT_NAME}_headers ${src_headers})
 list(APPEND ${CMAKE_PROJECT_NAME}_includes ${src_includes})
 
+add_subdirectory(TestingParaview/Code/src)
+list(APPEND ${CMAKE_PROJECT_NAME}_sources ${src_paraview_sources})
+list(APPEND ${CMAKE_PROJECT_NAME}_headers ${src_paraview_headers})
+list(APPEND ${CMAKE_PROJECT_NAME}_includes ${src_paraview_includes})
+
+add_subdirectory(src_test)
+list(APPEND ${CMAKE_PROJECT_NAME}_TEST_sources ${src_test_sources})
+list(APPEND ${CMAKE_PROJECT_NAME}_TEST_headers ${src_test_headers})
+list(APPEND ${CMAKE_PROJECT_NAME}_TEST_includes ${src_test_includes})
+
 # Add file
 ################################################################################
 
@@ -51,6 +61,13 @@ list(APPEND ${CMAKE_PROJECT_NAME}_includes ${src_includes})
 ################################################################################
 add_executable(${CMAKE_PROJECT_NAME} main.cpp ${${CMAKE_PROJECT_NAME}_sources} ${${CMAKE_PROJECT_NAME}_headers})
 
+add_executable(${CMAKE_PROJECT_NAME}_TEST main_test.cpp ${${CMAKE_PROJECT_NAME}_sources} ${${CMAKE_PROJECT_NAME}_headers} ${${CMAKE_PROJECT_NAME}_TEST_headers} ${${CMAKE_PROJECT_NAME}_TEST_sources})
+
 target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC ${DFN_LINKED_LIBRARIES})
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC ${${CMAKE_PROJECT_NAME}_includes})
 target_compile_options(${CMAKE_PROJECT_NAME} PUBLIC -fPIC)
+
+target_include_directories(${CMAKE_PROJECT_NAME}_TEST PUBLIC ${${CMAKE_PROJECT_NAME}_includes} ${${CMAKE_PROJECT_NAME}_TEST_includes})
+target_link_libraries(${CMAKE_PROJECT_NAME}_TEST PUBLIC ${${CMAKE_PROJECT_NAME}_LINKED_LIBRARIES})
+target_compile_options(${CMAKE_PROJECT_NAME}_TEST PUBLIC -fPIC)
+

@@ -33,7 +33,25 @@ struct DFN
 
     // per P_traces e NP_Traces vanno bene anche forwardlist??
 
-    double tolerance = 100*numeric_limits<double>::epsilon(); // tolleranza che utente può inserire, aumento il default??
+    double tolerance = 100*numeric_limits<double>::epsilon();
+};
+
+struct PolygonalMesh
+{
+    unsigned int NumberCell0D = 0; // Numero totale Cell0D
+    vector<unsigned int> IdCell0D = {}; // identificatori Cell0D --> intero positivo (dimensione 1)
+    vector<Vector3d> CoordinatesCell0D = {}; // coordinate Cell0D --> (x,y,z) doubles (dimensione 3)
+
+    unsigned int NumberCell1D = 0; // Numero totale Cell1D
+    vector<unsigned int> IdCell1D = {}; // identificatori Cell1D --> intero positivo (dimensione 1)
+    vector<Vector2i> VerticesCell1D = {}; // vertici Cell1D --> (id origine,id fine) (dimensione 2)
+
+    unsigned int NumberCell2D = 0; // Numero totale Cell2D
+    vector<unsigned int> IdCell2D = {}; // identificatori Cell2D --> intero positivo (dimensione 1)
+    vector<list<unsigned int>> VerticesCell2D = {}; // vertici Cell2D --> lista di vertici in senso antiorario
+    vector<list<unsigned int>> EdgesCell2D = {}; // lati Cell2D --> lista di lati in senso antiorario
+
+    double tolerance = 10000*numeric_limits<double>::epsilon();
 };
 
 

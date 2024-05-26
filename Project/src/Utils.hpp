@@ -29,6 +29,16 @@ void PrintTraces(const string& outputFile, DFN& dfn);
  *  outputFile: stringa con nome file di output **/
 void PrintSortedFractureTraces(const string& outputFile, DFN& dfn);
 
+/** Calcola per la frattura di vertici dati la Polygonal Mesh ottenuta compiendo i tagli lungo le sue tracce.
+ *  L'ordine di taglio seguito è: prima tracce passanti poi non passanti, entrambe gli insiemi ordinati per lugnhezza decrescente.
+ *  frac_vertices: matrice con vertici frattura (in senso antiorario)
+ *  p_traces: lista di identificativi di tracce passanti ordinate per lunghezza decrescente
+ *  np_traces: lista di identificativi di tracce non passanti ordinate per lunghezza decrescente
+ *  traces_extremes: matrice con estremi delle tracce
+ *  tol: tolleranza da command line (se non è inserita è 0) **/
+PolygonalMesh calculate_fracture_cuts(Matrix3Xd& frac_vertices, list<unsigned int>& p_traces, list<unsigned int>& np_traces,
+                                      vector<Matrix<double,3,2>>& traces_extremes, double tol);
+
 }
 
 #endif

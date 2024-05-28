@@ -7,7 +7,9 @@ using namespace DFNLibrary;
 int main(int argc, char ** argv)
 {
 
-    /**DFN dfn;
+    DFN dfn;
+    DFN_functions fun_dfn;
+    PolygonalMesh_functions fun_mesh;
 
     // Lettura di tolleranza da command line
     double tol = 0.0;
@@ -21,7 +23,7 @@ int main(int argc, char ** argv)
     }
 
     //Importazione fratture
-    bool operazione = ImportFractures("D:/Gaia/Politecnico/Programmazione e calcolo scientifico/Progetto_PCS_2024/Project/DFN/FR10_data.txt", dfn);
+    bool operazione = fun_dfn.ImportFractures("D:/Gaia/Politecnico/Programmazione e calcolo scientifico/Progetto_PCS_2024/Project/DFN/FR10_data.txt", dfn);
     if (not operazione)
     {
         cerr << "Error while importing fractures" << endl;
@@ -29,11 +31,11 @@ int main(int argc, char ** argv)
     }
     std::cout << "N fratture: " << dfn.NumberFractures << std::endl;
 
-    calculateTraces(dfn); // Calcolo tracce
+    fun_dfn.calculateTraces(dfn); // Calcolo tracce
 
     // Stampa output tracce su file
-    PrintTraces("PROVA_output_1.txt", dfn);
-    PrintSortedFractureTraces("PROVA_output_2.txt", dfn);
+    fun_dfn.PrintTraces("PROVA_output_1.txt", dfn);
+    fun_dfn.PrintSortedFractureTraces("PROVA_output_2.txt", dfn);
 
     vector<PolygonalMesh> cutted_fractures(dfn.NumberFractures); //--> elemento i-esimo= PolygonalMesh di frattura con id=i tagliata
 
@@ -41,11 +43,11 @@ int main(int argc, char ** argv)
     for (unsigned int i=0; i<dfn.NumberFractures; i++)
     {
         unsigned int id_frac = dfn.IdFractures[i];
-        // nb: controlla che tol sia ancora tolleranza da command line
-        cutted_fractures[i] = calculate_fracture_cuts(dfn.VerticesFractures[id_frac], dfn.P_Traces[id_frac], dfn.NP_Traces[id_frac], dfn.VerticesTraces, tol);
+        // nb: controlla che tol sia ancora tolleranza da command line (e se vuoi cambiala)
+        cutted_fractures[i] = fun_mesh.calculate_fracture_cuts(dfn.VerticesFractures[id_frac], dfn.P_Traces[id_frac], dfn.NP_Traces[id_frac], dfn.VerticesTraces, tol);
 
         // print o fai qualcosa
-    }**/
+    }
 
 
     return 0;

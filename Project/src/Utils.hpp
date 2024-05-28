@@ -51,7 +51,7 @@ struct PolygonalMesh_functions
 /************************************************************* SECONDARY FUNCTIONS ***************************************************/
 
 /** Restituisce l'id della cell1D su cui giace il punto. Se non trova alcuna cell1D restitisce -1 **/
-unsigned int edge_to_traceExtreme(Vector3d& ext_tr,DFNLibrary::PolygonalMesh& frac);
+int edge_to_traceExtreme(Vector3d& ext_tr,DFNLibrary::PolygonalMesh& frac);
 
 /** Restitusce lista ordinata per ascissa curvilinea crescente (punti da ext1_tr a ext2_tr) delle intersezioni della traccia con estremi (ext1_tr, ext2_tr) con i lati interni.
  *  Elemento i-esimo = (lato intersecato,ascissa intersezione)**/
@@ -68,9 +68,24 @@ unsigned int NewCell0D(DFNLibrary::PolygonalMesh& frac,Vector3d& point);
  *  ver1,ver2: unsigned int--> id vertici della cell1D **/
 unsigned int NewCell1D(DFNLibrary::PolygonalMesh& frac, unsigned int&  ver1,unsigned int& ver2);
 
+/** Inserisce id di nuova cell1D (generata a partire dal lato edge) nella lista dei lati interni o esterni
+ *  id_NEW_E: unsigned int --> id di nuova cell1D
+ *  edge: unsigned int --> id di cell1D originaria
+ *  external_edges,internal_edges: liste di unsigned int contenenti gli id dei lati**/
+void InternalExternalEdge(unsigned int& id_NEW_E,unsigned int& edge,list<unsigned int>& external_edges,list<unsigned int>& internal_edges);
+
+/** Effettua sulla frattura frac il taglio lungo la traccia di estremi ext1_tr e ext2_tr, inserenso nuove cell0D, cell1D, cell2D in frac. Restituisce false se errore nel processo, true altrimenti.
+ * frac: PolygonalMesh struct
+ * intersezioni: lista di coppie (id lato intersecato, ascissa curvilinea sulla retta ext1_tr + (ext2_tr-ext1_tr)t)
+ * ext1_tr, ext2_tr: Vector3d--> estremi traccia
+ * external_edges, internal_edges: liste di unsigned int contenenti gli id dei lati esterni e interni**/
+bool cut_divided_trace(DFNLibrary::PolygonalMesh& frac,list<Vector2d>& intersezioni, Vector3d& ext1_tr, Vector3d& ext2_tr,list<unsigned int>& external_edges,list<unsigned int>& internal_edges);
+
 /************************************************************* MAIN FUNCTIONS ***************************************************/
 
+
 /** Calcola per la frattura di vertici dati la Polygonal Mesh ottenuta compiendo i tagli lungo le sue tracce.
+ *  In caso di errore restituisce la frattura parzialmente tagliata, come si trova al momento dell'errore.
  *  L'ordine di taglio seguito è: prima tracce passanti poi non passanti, entrambe gli insiemi ordinati per lugnhezza decrescente.
  *  frac_vertices: matrice con vertici frattura (in senso antiorario)
  *  p_traces: lista di identificativi di tracce passanti ordinate per lunghezza decrescente

@@ -180,6 +180,314 @@ void DFN_functions::InsertSortedTraces(DFNLibrary::DFN& dfn, const unsigned int 
     }
 }
 
+
+int PolygonalMesh_functions::edge_to_traceExtreme(Vector3d& ext_tr,DFNLibrary::PolygonalMesh& frac)
+{
+    bool l_found= false;
+    unsigned int l;
+    for (unsigned int i=0; i<frac.NumberCell1D; i++)
+    {
+        unsigned int v0 = frac.VerticesCell1D[i][0];  //id vertice 1
+        unsigned int v1 = frac.VerticesCell1D[i][1];  //id vertice 2
+
+        Vector3d v1_v0 = frac.CoordinatesCell0D[v1]-frac.CoordinatesCell0D[v0]; // vettore da v0 a v1
+        Vector3d ext_v0 = ext_tr-frac.CoordinatesCell0D[v0]; // vettore da v0 a estremo
+        Vector3d n_ext_edge(v1_v0[1]*ext_v0[2]-v1_v0[2]*ext_v0[1],-v1_v0[0]*ext_v0[2]+v1_v0[2]*ext_v0[0], v1_v0[0]*ext_v0[1]-v1_v0[1]*ext_v0[0]); // prodotto vettoriale (cioè normale al piano passante per v0,v1 e estremo)
+        if (n_ext_edge[0]*n_ext_edge[0]+n_ext_edge[1]*n_ext_edge[1]+n_ext_edge[2]*n_ext_edge[2] <= frac.tolerance) // estremo sulla retta contenente il lato (perchè n_ext_edge norma nulla)
+        {
+            double s_ext = (ext_v0[0]/v1_v0[0] + ext_v0[1]/v1_v0[1] + ext_v0[2]/v1_v0[2])/3; // ascissa curvilinea dell'estremo sulla retta R: V0+(V1-V0)s (retta su cui poggia il lato)
+            if ((s_ext>(-frac.tolerance)) && (s_ext<(1+frac.tolerance))) // s in [0,1], cioè estremo nel lato
+            {
+                l=i;
+                l_found= true;
+            }
+        }
+
+        if (l_found) // esco dal ciclo quando trovo il lato
+            break;
+    }
+    if (not l_found)
+        return -1;
+    else
+        return l;
+}
+
+
+list<Vector2d> PolygonalMesh_functions::IntersectTraceWithInternalEdges(Vector3d& ext1_tr,Vector3d& ext2_tr,DFNLibrary::PolygonalMesh& frac,list<unsigned int>& internal_edges)
+{
+    list<Vector2d> intersezioni={}; //lista ordinata di intersezioni traccia (allontanandosi da ext1_tr verso ext2_tr). Ogni vettore primo elemento: lato intersecante, secondo elemento: ascissa su traccia
+    Vector3d t_T = ext2_tr - ext1_tr; // vettore tangente a rT: ext1_tr + t_T*s (retta su cui giace la traccia)
+    for (auto it_edge = internal_edges.begin(); it_edge != internal_edges.end();it_edge++)
+    {
+        unsigned int id_edge = *(it_edge); // identificatore lato corrente
+
+        // Calcolo intersezione retta rL associata al lato e retta rT associata alla traccia
+        Vector3d t_L = frac.CoordinatesCell0D[frac.VerticesCell1D[id_edge][1]] - frac.CoordinatesCell0D[frac.VerticesCell1D[id_edge][0]] ; // vettore tangente a rL
+        Vector3d pv_TL(t_T[1]*t_L[2]-t_T[2]*t_L[1],t_T[0]*t_L[2]+t_T[2]*t_L[0], t_T[0]*t_L[1]-t_T[1]*t_L[0]); // prodotto vettoriale tra t_T e t_L
+        if ((pv_TL[0]*pv_TL[0]+pv_TL[1]*pv_TL[1]+pv_TL[2]*pv_TL[2])>frac.tolerance) // se t_T e t_L NON sono paralleli (norma pv_TL NON nulla) calcolo possibile intersezione
+        {
+            Matrix<double,3,2> M{{t_T[0],t_L[0]},{t_T[1],t_L[1]},{t_T[2],t_L[2]}};
+            Vector3d b = frac.CoordinatesCell0D[frac.VerticesCell1D[id_edge][0]] - ext1_tr ;
+            Vector2d sol_intersez = M.fullPivLu().solve(b);
+            double s = sol_intersez[0]; // ascissa intersezione su rT: ext1_tr + t_T*s
+            if ((s>frac.tolerance) && (s<(1-frac.tolerance))) //intersezione nel segmento della traccia
+            {
+                bool inserted = false;
+                for (auto it_intsz = intersezioni.begin(); it_intsz != intersezioni.end();it_intsz++) // ciclo per inserirlo in ordine
+                {
+                    Vector2d elemento = *(it_intsz);
+                    if ((s < elemento[1]) && (not inserted))
+                    {
+                        intersezioni.insert(it_intsz,{id_edge,s}); // inserisci per ascissa crescente
+                        inserted = true;
+                    }
+                }
+                if (not inserted)
+                    intersezioni.push_back({id_edge,s}); // aggiungi alla fine della lista
+            }
+        }
+    }
+    return intersezioni;
+}
+
+
+unsigned int PolygonalMesh_functions::NewCell0D(DFNLibrary::PolygonalMesh& frac,Vector3d& point)
+{
+    unsigned int id_NEW_V = frac.NumberCell0D;
+    frac.NumberCell0D += 1; // aumento numero cell0D
+    frac.IdCell0D.push_back(id_NEW_V); // inserisco il nuovo id nella mesh
+    frac.CoordinatesCell0D.push_back(point);
+    return id_NEW_V;
+}
+
+
+unsigned int PolygonalMesh_functions::NewCell1D(DFNLibrary::PolygonalMesh& frac, unsigned int&  ver1,unsigned int& ver2)
+{
+    unsigned int id_NEW_E = frac.NumberCell1D;
+    frac.NumberCell1D += 1; // aumento numero cell1D
+    frac.IdCell1D.push_back(id_NEW_E); // inserisco il nuovo id nella mesh
+    frac.VerticesCell1D.push_back({ver1,ver2});
+    return id_NEW_E;
+}
+
+
+void PolygonalMesh_functions::InternalExternalEdge(unsigned int& id_NEW_E,unsigned int& edge,list<unsigned int>& external_edges,list<unsigned int>& internal_edges)
+{
+    bool external_edge = false; // booleano per inserire nuovo lato tra interni o esterni
+    auto it_external = external_edges.begin();
+    while ((it_external != external_edges.end()) && (not external_edge))
+    {
+        if (*(it_external) == edge) // lato corrente esterno
+        {
+            external_edges.push_back(id_NEW_E); // nuovo lato creato a partire da lato corrente è ancora esterno
+            external_edge = true;
+        }
+        it_external++;
+    }
+    if (not external_edge) // lato interno
+        internal_edges.push_back(id_NEW_E);
+}
+
+
+bool PolygonalMesh_functions::cut_divided_trace(DFNLibrary::PolygonalMesh& frac,list<Vector2d>& intersezioni, Vector3d& ext1_tr, Vector3d& ext2_tr,list<unsigned int>& external_edges,list<unsigned int>& internal_edges)
+{
+    unsigned int counter_intsz=1; //utile per alcuni controlli
+    unsigned int sz_int= intersezioni.size(); // per evitare di ciclare quando ho solo più un intersezione nella lista
+
+    unsigned int id_intersez_prec; // per evitare di salvare nuove cell0D di intersezioni interne due volte
+    unsigned int id_NEW_V;
+    unsigned int id_OLD_V;
+    unsigned int id_NEW_E;
+    unsigned int id_NEW_E_T;
+    unsigned int id_NEW_C;
+
+    for (auto it_intsz = intersezioni.begin(); it_intsz != intersezioni.end();it_intsz++)
+    {
+        if (counter_intsz<sz_int) // quando mi trovo su ultimo elemento ho finito
+        {
+            // TAGLIO DA INTERSEZIONE CORRENTE A SUCCESSIVA
+            Vector2d intsz1=*(it_intsz);
+            Vector2d intsz2=*(next(it_intsz)); // considera elemento successivo in lista intersezioni
+
+            // Cerco cella2D che presenta entrambe i lati coinvolti (cell_2D)
+            unsigned int edge1= static_cast<unsigned int>(std::round(intsz1[0])) ; // riporto ad unsigned int per non avere problemi con double
+            unsigned int edge2= static_cast<unsigned int>(std::round(intsz2[0])) ; // riporto ad unsigned int per non avere problemi con double
+            bool found_cell2D = false;
+            unsigned int cell_2D; // fare controllo se non la trova
+            for (unsigned int c2D=0; c2D < frac.NumberCell2D; c2D++)
+            {
+                if (not found_cell2D)
+                {
+                    bool found_l1 = false;
+                    for (auto it_L_2D = frac.EdgesCell2D[c2D].begin(); it_L_2D != frac.EdgesCell2D[c2D].end();it_L_2D++)
+                    {
+                        unsigned int current_edge=*(it_L_2D); // lo salvo in double per compararlo senza problemi con lato salvato come double nel vettore dentro intersezioni
+                        if (current_edge== edge1)
+                            found_l1 = true; // nella cella corrente è presente edge1
+                        if (found_l1)
+                        {
+                            for (auto it_L2_2D = frac.EdgesCell2D[c2D].begin(); it_L2_2D != frac.EdgesCell2D[c2D].end();it_L2_2D++)
+                            {
+                                unsigned int current_edge2=*(it_L2_2D);
+                                if (current_edge2== edge2)
+                                {
+                                    found_cell2D = true; // nella cella corrente è presente anche edge2 (è cella cercata)
+                                    cell_2D = c2D;
+                                    break; // smetto di ciclare sui lati di questa cella per trovare edge2
+                                }
+                            }
+                            break; // smetto di ciclare sui lati di questa cella per trovare edge1
+                        }
+                    }
+                }
+            }
+            if (not found_cell2D)
+            {
+                cerr << "ERROR while looking for cell2d to cut"<< endl;
+                return false;
+            }
+            else
+            {
+                // EFFETTUO TAGLIO su cella2D trovata (cell_2D) congiungente intersezione corrente e successiva
+                Vector3d point1 = ext1_tr +(ext2_tr-ext1_tr)*intsz1[1]; // coordinate punto di intersezione corrente (uso ascissa su retta associata alla traccia)
+                Vector3d point2 = ext1_tr +(ext2_tr-ext1_tr)*intsz2[1]; // coordinate punto di intersezione successiva (uso ascissa su retta associata alla traccia)
+
+                bool seconda_cella = false; // true se sto lavorando su nuova cella
+                bool l1_found = false; // true se ho già trovato l1
+                bool l2_found = false; // true se ho già trovato l2
+                list<unsigned int> lati_iterazione = frac.EdgesCell2D[cell_2D]; //copia lati cella su cui iterare
+                list<unsigned int> vertici_iterazione = frac.VerticesCell2D[cell_2D]; //copia vertici cella su cui iterare
+
+                auto iter_ver = vertici_iterazione.begin();
+                unsigned int iter_old_cell=1;
+
+                for (auto iter_edge = lati_iterazione.begin(); iter_edge != lati_iterazione.end(); iter_edge++)
+                {
+                    unsigned int edge=*(iter_edge); // lato corrente
+                    unsigned int vert=*(iter_ver); // vertice corrente
+                    if (not seconda_cella) // sto lavorando su cella vecchia
+                    {
+                        if ((edge==edge1) || (edge==edge2) ) // lato corrente è uno dei dei lati con estremo traccia
+                        {
+                            seconda_cella = true;
+                            frac.EdgesCell2D[cell_2D].resize(iter_old_cell); // Cancello dalla lista dei lati della vecchia cella tutti quelli successivi a lato corrente
+                            frac.VerticesCell2D[cell_2D].resize(iter_old_cell); // Cancello dalla lista dei vertici della vecchia cella tutti quelli successivi a vertice corrente
+
+                            if (edge==edge1) //lato corrente=lato1
+                            {
+                                l1_found=true;
+                                if (counter_intsz==1) // primo taglio (anche il primo estremo non è ancora inserito tra le cell0D)
+                                    id_NEW_V = NewCell0D(frac,point1); // creo nuova cell0D per interesezione1
+                                else
+                                    id_NEW_V = id_intersez_prec; // già salvata in taglio precedente
+                            }
+                            else //lato corrente=lato2
+                            {
+                                l2_found=true;
+                                id_NEW_V = NewCell0D(frac,point2); // creo nuova cell0D per interesezione2
+                            }
+
+                            frac.VerticesCell2D[cell_2D].push_back(id_NEW_V); // aggiungo nuovo vertice a lista di cella originaria
+
+                            if (vert == frac.VerticesCell1D[edge][0]) // vertice corrente è il primo del lato corrente
+                            {
+                                id_OLD_V = frac.VerticesCell1D[edge][1];
+                                frac.VerticesCell1D[edge][1] = id_NEW_V;
+                            }
+                            else // vert == frac.VerticesCell1D[edge][1] // vertice corrente è il secondo del lato corrente
+                            {
+                                id_OLD_V = frac.VerticesCell1D[edge][0];
+                                frac.VerticesCell1D[edge][0] = id_NEW_V;
+                            }
+                            id_NEW_E = NewCell1D(frac, id_NEW_V,id_OLD_V); // creo nuovo lato (sottolato di corrente) da estremo traccia a secondo vertice di lato originario
+                            InternalExternalEdge(id_NEW_E,edge,external_edges,internal_edges); //Inserisco nuovo lato in lista lati interni o esterni
+
+                            // Creo nuova cell2D
+                            id_NEW_C = frac.NumberCell2D;
+                            frac.NumberCell2D +=1; // aumento numero cell2D
+                            frac.IdCell2D.push_back(id_NEW_C); // inserisco il nuovo id nella mesh
+                            frac.VerticesCell2D.push_back({id_NEW_V}); // inserisco primo vertice (estremo traccia su lato corrente)
+                            frac.EdgesCell2D.push_back({id_NEW_E}); // inserisco primo lato (ottenuto da lato corrente, tratto da estremo traccia su lato a estremo originario lato)
+
+                        }
+                        else // lato corrente NON è coinvolto in traccia
+                        {
+                            if ((l1_found) && (l2_found)) //lavoro su nuova traccia terminato (si deve concludere la vecchia)
+                            {
+                                frac.EdgesCell2D[cell_2D].push_back(edge);
+                                frac.VerticesCell2D[cell_2D].push_back(vert);
+                            }
+                            else // ancora non creata cella nuova
+                            {
+                                iter_old_cell +=1;
+                            }
+                        }
+                    }
+                    else // sto lavorando su cella nuova
+                    {
+                        if ((edge==edge1) || (edge==edge2) ) // lato corrente è uno dei dei lati con estremo traccia
+                        {
+                            seconda_cella = false;
+                            if (l2_found) // ho trovato edge1 (perchè edge2 già trovato)
+                            {
+                                l1_found = true;
+                                if (counter_intsz==1) // primo taglio (anche il primo estremo non è ancora inserito tra le cell0D)
+                                    id_NEW_V = NewCell0D(frac,point1); // creo nuova cell0D per interesezione1
+                                else
+                                    id_NEW_V = id_intersez_prec; // già salvata in taglio precedente
+                            }
+                            else // ho trovato edge2 (perchè edge1 già trovato)
+                            {
+                                l2_found = true;
+                                id_NEW_V = NewCell0D(frac,point2); // creo nuova cell0D per interesezione2
+                            }
+
+                            frac.VerticesCell2D[id_NEW_C].push_back(vert); // inserisco vertice in lista di vertici della nuova cella
+                            frac.EdgesCell2D[id_NEW_C].push_back(edge); // inserisco lato in lista di lati della nuova cella
+                            frac.VerticesCell2D[id_NEW_C].push_back(id_NEW_V); // inserisco nuovo vertice (secondo estremo traccia) in lista di vertici della nuova cella
+
+                            if (vert == frac.VerticesCell1D[edge][0]) // vertice corrente è il primo del lato corrente
+                            {
+                                id_OLD_V = frac.VerticesCell1D[edge][1];
+                                frac.VerticesCell1D[edge][1] = id_NEW_V;
+                            }
+                            else // vert == frac.VerticesCell1D[edge][1] // vertice corrente è il secondo del lato corrente
+                            {
+                                id_OLD_V = frac.VerticesCell1D[edge][0];
+                                frac.VerticesCell1D[edge][0] = id_NEW_V;
+                            }
+                            id_NEW_E = NewCell1D(frac, id_NEW_V,id_OLD_V);// creo nuovo lato (sottolato di corrente) da estremo traccia a secondo vertice di lato originario
+                            InternalExternalEdge(id_NEW_E,edge,external_edges,internal_edges); //Inserisco nuovo lato in lista lati interni o esterni
+
+                            // Creo lato traccia
+                            unsigned int id_other_extr_tr= id_NEW_V-1; //id dell'altra cell0D estremo della traccia (quella già visitata)
+                            id_NEW_E_T = NewCell1D(frac, id_NEW_V,id_other_extr_tr);
+                            internal_edges.push_back(id_NEW_E_T); // lato generato da traccia è sempre interno
+
+                            frac.EdgesCell2D[id_NEW_C].push_back(id_NEW_E_T); // inserisco lato traccia nella lista dei lati della cella nuova (e così la concludo)
+                            frac.VerticesCell2D[cell_2D].push_back(id_NEW_V); // inserisco secondo estremo traccia in lista vertici cella originaria
+                            frac.EdgesCell2D[cell_2D].push_back(id_NEW_E_T); // inserisco lato traccia nella lista dei lati della cella originaria
+                            frac.EdgesCell2D[cell_2D].push_back(id_NEW_E); // inserisco nuovo lato (ottenuto a partire da lato corrente) nella lista dei lati della cella originaria
+
+                        }
+                        else // lato corrente NON è coinvolto in traccia
+                        {
+                            frac.VerticesCell2D[id_NEW_C].push_back(vert); // inserisco vertice in lista di vertici della nuova cella
+                            frac.EdgesCell2D[id_NEW_C].push_back(edge); // inserisco lato in lista di lati della nuova cella
+                        }
+                    }
+                    iter_ver++;  // incremento iteratore vertici
+                }
+            }
+            id_intersez_prec = max(frac.VerticesCell1D[edge2][0],frac.VerticesCell1D[edge2][1]); //id di seconda intersezione come cella0D (è l'id maggiore tra i due vertici del lato2
+        } // fine sottotaglio
+
+        counter_intsz +=1;
+    }
+    return true;
+}
+
+
 /************************************************************* MAIN FUNCTIONS ***************************************************/
 
 bool DFN_functions::ImportFractures(const string& filepath, DFN& dfn)
@@ -606,99 +914,6 @@ void DFN_functions::PrintSortedFractureTraces(const string& outputFile, DFN& dfn
 }
 
 
-unsigned int PolygonalMesh_functions::edge_to_traceExtreme(Vector3d& ext_tr,DFNLibrary::PolygonalMesh& frac)
-{
-    bool l_found= false;
-    unsigned int l;
-    for (unsigned int i=0; i<frac.NumberCell1D; i++)
-    {
-        unsigned int v0 = frac.VerticesCell1D[i][0];  //id vertice 1
-        unsigned int v1 = frac.VerticesCell1D[i][1];  //id vertice 2
-
-        Vector3d v1_v0 = frac.CoordinatesCell0D[v1]-frac.CoordinatesCell0D[v0]; // vettore da v0 a v1
-        Vector3d ext_v0 = ext_tr-frac.CoordinatesCell0D[v0]; // vettore da v0 a estremo
-        Vector3d n_ext_edge(v1_v0[1]*ext_v0[2]-v1_v0[2]*ext_v0[1],-v1_v0[0]*ext_v0[2]+v1_v0[2]*ext_v0[0], v1_v0[0]*ext_v0[1]-v1_v0[1]*ext_v0[0]); // prodotto vettoriale (cioè normale al piano passante per v0,v1 e estremo)
-        if (n_ext_edge[0]*n_ext_edge[0]+n_ext_edge[1]*n_ext_edge[1]+n_ext_edge[2]*n_ext_edge[2] <= frac.tolerance) // estremo sulla retta contenente il lato (perchè n_ext_edge norma nulla)
-        {
-            double s_ext = (ext_v0[0]/v1_v0[0] + ext_v0[1]/v1_v0[1] + ext_v0[2]/v1_v0[2])/3; // ascissa curvilinea dell'estremo sulla retta R: V0+(V1-V0)s (retta su cui poggia il lato)
-            if ((s_ext>(-frac.tolerance)) && (s_ext<(1+frac.tolerance))) // s in [0,1], cioè estremo nel lato
-            {
-                l=i;
-                l_found= true;
-            }
-        }
-
-        if (l_found) // esco dal ciclo quando trovo il lato
-            break;
-    }
-    if (not l_found)
-    {
-        cerr << "Considered point in NOT on an edge (cell1D)" << endl;
-        return -1;
-    }
-    else
-        return l;
-}
-
-
-list<Vector2d> PolygonalMesh_functions::IntersectTraceWithInternalEdges(Vector3d& ext1_tr,Vector3d& ext2_tr,DFNLibrary::PolygonalMesh& frac,list<unsigned int>& internal_edges)
-{
-    list<Vector2d> intersezioni={}; //lista ordinata di intersezioni traccia (allontanandosi da ext1_tr verso ext2_tr). Ogni vettore primo elemento: lato intersecante, secondo elemento: ascissa su traccia
-    Vector3d t_T = ext2_tr - ext1_tr; // vettore tangente a rT: ext1_tr + t_T*s (retta su cui giace la traccia)
-    for (auto it_edge = internal_edges.begin(); it_edge != internal_edges.end();it_edge++)
-    {
-        unsigned int id_edge = *(it_edge); // identificatore lato corrente
-
-        // Calcolo intersezione retta rL associata al lato e retta rT associata alla traccia
-        Vector3d t_L = frac.CoordinatesCell0D[frac.VerticesCell1D[id_edge][1]] - frac.CoordinatesCell0D[frac.VerticesCell1D[id_edge][0]] ; // vettore tangente a rL
-        Vector3d pv_TL(t_T[1]*t_L[2]-t_T[2]*t_L[1],t_T[0]*t_L[2]+t_T[2]*t_L[0], t_T[0]*t_L[1]-t_T[1]*t_L[0]); // prodotto vettoriale tra t_T e t_L
-        if ((pv_TL[0]*pv_TL[0]+pv_TL[1]*pv_TL[1]+pv_TL[2]*pv_TL[2])>frac.tolerance) // se t_T e t_L NON sono paralleli (norma pv_TL NON nulla) calcolo possibile intersezione
-        {
-            Matrix<double,3,2> M{{t_T[0],t_L[0]},{t_T[1],t_L[1]},{t_T[2],t_L[2]}};
-            Vector3d b = frac.CoordinatesCell0D[frac.VerticesCell1D[id_edge][0]] - ext1_tr ;
-            Vector2d sol_intersez = M.fullPivLu().solve(b);
-            double s = sol_intersez[0]; // ascissa intersezione su rT: ext1_tr + t_T*s
-            if ((s>frac.tolerance) && (s<(1-frac.tolerance))) //intersezione nel segmento della traccia
-            {
-                bool inserted = false;
-                for (auto it_intsz = intersezioni.begin(); it_intsz != intersezioni.end();it_intsz++) // ciclo per inserirlo in ordine
-                {
-                    Vector2d elemento = *(it_intsz);
-                    if ((s < elemento[1]) && (not inserted))
-                    {
-                        intersezioni.insert(it_intsz,{id_edge,s}); // inserisci per ascissa crescente
-                        inserted = true;
-                    }
-                }
-                if (not inserted)
-                    intersezioni.push_back({id_edge,s}); // aggiungi alla fine della lista
-            }
-        }
-    }
-    return intersezioni;
-}
-
-
-unsigned int PolygonalMesh_functions::NewCell0D(DFNLibrary::PolygonalMesh& frac,Vector3d& point)
-{
-    unsigned int id_NEW_V = frac.NumberCell0D;
-    frac.NumberCell0D += 1; // aumento numero cell0D
-    frac.IdCell0D.push_back(id_NEW_V); // inserisco il nuovo id nella mesh
-    frac.CoordinatesCell0D.push_back(point);
-    return id_NEW_V;
-}
-
-
-unsigned int PolygonalMesh_functions::NewCell1D(DFNLibrary::PolygonalMesh& frac, unsigned int&  ver1,unsigned int& ver2)
-{
-    unsigned int id_NEW_E = frac.NumberCell1D;
-    frac.NumberCell1D += 1; // aumento numero cell1D
-    frac.IdCell1D.push_back(id_NEW_E); // inserisco il nuovo id nella mesh
-    frac.VerticesCell1D.push_back({ver1,ver2});
-    return id_NEW_E;
-}
-
-
 PolygonalMesh PolygonalMesh_functions::calculate_fracture_cuts(Matrix3Xd& frac_vertices, list<unsigned int>& p_traces, list<unsigned int>& np_traces,vector<Matrix<double,3,2>>& traces_extremes, double tol)
 {
     PolygonalMesh frac;
@@ -747,220 +962,178 @@ PolygonalMesh PolygonalMesh_functions::calculate_fracture_cuts(Matrix3Xd& frac_v
         external_edges.push_back(i); // tutti i lati della frattura sono esterni
     }
 
+    bool taglio;
+
     // CICLO SU TRACCE PASSANTI
     for (auto it_tr = p_traces.begin(); it_tr != p_traces.end();it_tr++)
     {
         unsigned int id_tr = *(it_tr); // identificatore traccia
         Vector3d ext1_tr = traces_extremes[id_tr](all,0); // coordinate estremo 1 traccia
         Vector3d ext2_tr = traces_extremes[id_tr](all,1); // coordinate estremo 2 traccia
+
         // Associo ai due estremi i due lati su cui giacciono
-        unsigned int l1 = edge_to_traceExtreme(ext1_tr,frac);
-        unsigned int l2 = edge_to_traceExtreme(ext2_tr,frac);
+        int l_1 = edge_to_traceExtreme(ext1_tr,frac);
+        int l_2 = edge_to_traceExtreme(ext2_tr,frac);
+        unsigned int l1;
+        unsigned int l2;
+        if ((l_1==-1) || (l_2==-1))
+        {
+            cerr << "One of the extremes in NOT on an edge (cell1D) but tips=FALSE" << endl;
+            return frac; // restitusce frattura senza completare i tagli
+        }
+        else
+        {
+            l1 = l_1;
+            l2 = l_2;
+        }
+
         // CASO LIBRO l1=l2
 
         // Calcolo intersezioni traccia corrente con lati interni
         list<Vector2d> intersezioni= IntersectTraceWithInternalEdges(ext1_tr,ext2_tr,frac,internal_edges);
 
-        // generalizza se passante aggiungi estremi traccia, se non lo è funzione che li calcola
+        // Inserisco estremi traccia (intersezioni con lati esterni
         intersezioni.push_front({l1,0});
         intersezioni.push_back({l2,1});
 
         // Tagli lungo traccia
-        unsigned int counter_intsz=1; //utile per alcuni controlli
-        unsigned int sz_int= intersezioni.size(); // per evitare di ciclare quando ho solo più un intersezione nella lista
-
-        unsigned int id_intersez_prec; // per evitare di salvare nuove cell0D di intersezioni interne due volte
-        unsigned int id_NEW_V;
-        unsigned int id_OLD_V;
-        unsigned int id_NEW_E;
-        unsigned int id_NEW_E_T;
-        unsigned int id_NEW_C;
-
-        for (auto it_intsz = intersezioni.begin(); it_intsz != intersezioni.end();it_intsz++)
+        taglio = cut_divided_trace(frac, intersezioni, ext1_tr, ext2_tr, external_edges, internal_edges);
+        if (not taglio)
         {
-            if (counter_intsz<sz_int) // quando mi trovo su ultimo elemento ho finito
-            {
-                // TAGLIO DA INTERSEZIONE CORRENTE A SUCCESSIVA
-                Vector2d intsz1=*(it_intsz);
-                Vector2d intsz2=*(next(it_intsz)); // considera elemento successivo in lista intersezioni
-
-                // Cerco cella2D che presenta entrambe i lati coinvolti (cell_2D)
-                unsigned int edge1= static_cast<unsigned int>(std::round(intsz1[0])) ; // riporto ad unsigned int per non avere problemi con double
-                unsigned int edge2= static_cast<unsigned int>(std::round(intsz2[0])) ; // riporto ad unsigned int per non avere problemi con double
-                bool found_cell2D = false;
-                unsigned int cell_2D; // fare controllo se non la trova
-                for (unsigned int c2D=0; c2D < frac.NumberCell2D; c2D++)
-                {
-                    if (not found_cell2D)
-                    {
-                        bool found_l1 = false;
-                        for (auto it_L_2D = frac.EdgesCell2D[c2D].begin(); it_L_2D != frac.EdgesCell2D[c2D].end();it_L_2D++)
-                        {
-                            unsigned int current_edge=*(it_L_2D); // lo salvo in double per compararlo senza problemi con lato salvato come double nel vettore dentro intersezioni
-                            if (current_edge== edge1)
-                                found_l1 = true; // nella cella corrente è presente edge1
-                            if (found_l1)
-                            {
-                                for (auto it_L2_2D = frac.EdgesCell2D[c2D].begin(); it_L2_2D != frac.EdgesCell2D[c2D].end();it_L2_2D++)
-                                {
-                                    unsigned int current_edge2=*(it_L2_2D);
-                                    if (current_edge2== edge2)
-                                    {
-                                        found_cell2D = true; // nella cella corrente è presente anche edge2 (è cella cercata)
-                                        cell_2D = c2D;
-                                        break; // smetto di ciclare sui lati di questa cella per trovare edge2
-                                    }
-                                }
-                                break; // smetto di ciclare sui lati di questa cella per trovare edge1
-                            }
-                        }
-                    }
-                }
-                if (not found_cell2D)
-                    cerr << "ERROR while looking for cell2d to cut"<< endl;
-                else
-                {
-                    // EFFETTUO TAGLIO su cella2D trovata (cell_2D) congiungente intersezione corrente e successiva
-                    Vector3d point1 = ext1_tr +(ext2_tr-ext1_tr)*intsz1[1]; // coordinate punto di intersezione corrente (uso ascissa su retta associata alla traccia)
-                    Vector3d point2 = ext1_tr +(ext2_tr-ext1_tr)*intsz2[1]; // coordinate punto di intersezione successiva (uso ascissa su retta associata alla traccia)
-
-                    bool seconda_cella = false; // true se sto lavorando su nuova cella
-                    bool l1_found = false; // true se ho già trovato l1
-                    bool l2_found = false; // true se ho già trovato l2
-                    list<unsigned int> lati_iterazione = frac.EdgesCell2D[cell_2D]; //copia lati cella su cui iterare
-                    list<unsigned int> vertici_iterazione = frac.VerticesCell2D[cell_2D]; //copia vertici cella su cui iterare
-
-                    auto iter_ver = vertici_iterazione.begin();
-                    unsigned int iter_old_cell=1;
-                    //NB: STO ESCLUDENDO IL CASO DI DUE VERTICI SU STESSO LATO--- DA FARE
-                    // NB. VALUTARE COSA SUCCEDE CON LIBRO
-                    for (auto iter_edge = lati_iterazione.begin(); iter_edge != lati_iterazione.end(); iter_edge++)
-                    {
-                        unsigned int edge=*(iter_edge); // lato corrente
-                        unsigned int vert=*(iter_ver); // vertice corrente
-                        if (not seconda_cella) // sto lavorando su cella vecchia
-                        {
-                            if ((edge==edge1) || (edge==edge2) ) // lato corrente è uno dei dei lati con estremo traccia
-                            {
-                                seconda_cella = true;
-                                frac.EdgesCell2D[cell_2D].resize(iter_old_cell); // Cancello dalla lista dei lati della vecchia cella tutti quelli successivi a lato corrente
-                                frac.VerticesCell2D[cell_2D].resize(iter_old_cell); // Cancello dalla lista dei vertici della vecchia cella tutti quelli successivi a vertice corrente
-
-                                if (edge==edge1) //lato corrente=lato1
-                                {
-                                    l1_found=true;
-                                    if (counter_intsz==1) // primo taglio (anche il primo estremo non è ancora inserito tra le cell0D)
-                                        id_NEW_V = NewCell0D(frac,point1); // creo nuova cell0D per interesezione1
-                                    else
-                                        id_NEW_V = id_intersez_prec; // già salvata in taglio precedente
-                                }
-                                else //lato corrente=lato2
-                                {
-                                    l2_found=true;
-                                    id_NEW_V = NewCell0D(frac,point2); // creo nuova cell0D per interesezione2
-                                }
-
-                                frac.VerticesCell2D[cell_2D].push_back(id_NEW_V); // aggiungo nuovo vertice a lista di cella originaria
-
-                                if (vert == frac.VerticesCell1D[edge][0]) // vertice corrente è il primo del lato corrente
-                                {
-                                    id_OLD_V = frac.VerticesCell1D[edge][1];
-                                    frac.VerticesCell1D[edge][1] = id_NEW_V;
-                                }
-                                else // vert == frac.VerticesCell1D[edge][1] // vertice corrente è il secondo del lato corrente
-                                {
-                                    id_OLD_V = frac.VerticesCell1D[edge][0];
-                                    frac.VerticesCell1D[edge][0] = id_NEW_V;
-                                }
-                                id_NEW_E = NewCell1D(frac, id_NEW_V,id_OLD_V); // creo nuovo lato (sottolato di corrente) da estremo traccia a secondo vertice di lato originario
-                                //Inserire in extrnals o internals FAREEEEEEEEEEEE
-
-                                // Creo nuova cell2D
-                                id_NEW_C = frac.NumberCell2D;
-                                frac.NumberCell2D +=1; // aumento numero cell2D
-                                frac.IdCell2D.push_back(id_NEW_C); // inserisco il nuovo id nella mesh
-                                frac.VerticesCell2D.push_back({id_NEW_V}); // inserisco primo vertice (estremo traccia su lato corrente)
-                                frac.EdgesCell2D.push_back({id_NEW_E}); // inserisco primo lato (ottenuto da lato corrente, tratto da estremo traccia su lato a estremo originario lato)
-
-                            }
-                            else // lato corrente NON è coinvolto in traccia
-                            {
-                                if ((l1_found) && (l2_found)) //lavoro su nuova traccia terminato (si deve concludere la vecchia)
-                                {
-                                    frac.EdgesCell2D[cell_2D].push_back(edge);
-                                    frac.VerticesCell2D[cell_2D].push_back(vert);
-                                }
-                                else // ancora non creata cella nuova
-                                {
-                                    iter_old_cell +=1;
-                                }
-                            }
-                        }
-                        else // sto lavorando su cella nuova
-                        {
-                            if ((edge==edge1) || (edge==edge2) ) // lato corrente è uno dei dei lati con estremo traccia
-                            {
-                                seconda_cella = false;
-                                if (l2_found) // ho trovato edge1 (perchè edge2 già trovato)
-                                {
-                                    l1_found = true;
-                                    if (counter_intsz==1) // primo taglio (anche il primo estremo non è ancora inserito tra le cell0D)
-                                        id_NEW_V = NewCell0D(frac,point1); // creo nuova cell0D per interesezione1
-                                    else
-                                        id_NEW_V = id_intersez_prec; // già salvata in taglio precedente
-                                }
-                                else // ho trovato edge2 (perchè edge1 già trovato)
-                                {
-                                    l2_found = true;
-                                    id_NEW_V = NewCell0D(frac,point2); // creo nuova cell0D per interesezione2
-                                }
-
-                                frac.VerticesCell2D[id_NEW_C].push_back(vert); // inserisco vertice in lista di vertici della nuova cella
-                                frac.EdgesCell2D[id_NEW_C].push_back(edge); // inserisco lato in lista di lati della nuova cella
-                                frac.VerticesCell2D[id_NEW_C].push_back(id_NEW_V); // inserisco nuovo vertice (secondo estremo traccia) in lista di vertici della nuova cella
-
-                                if (vert == frac.VerticesCell1D[edge][0]) // vertice corrente è il primo del lato corrente
-                                {
-                                    id_OLD_V = frac.VerticesCell1D[edge][1];
-                                    frac.VerticesCell1D[edge][1] = id_NEW_V;
-                                }
-                                else // vert == frac.VerticesCell1D[edge][1] // vertice corrente è il secondo del lato corrente
-                                {
-                                    id_OLD_V = frac.VerticesCell1D[edge][0];
-                                    frac.VerticesCell1D[edge][0] = id_NEW_V;
-                                }
-                                id_NEW_E = NewCell1D(frac, id_NEW_V,id_OLD_V);// creo nuovo lato (sottolato di corrente) da estremo traccia a secondo vertice di lato originario
-                                //Inserire in extrnals o internals FAREEEEEEEEEEEE
-
-                                // Creo lato traccia
-                                unsigned int id_other_extr_tr= id_NEW_V-1; //id dell'altra cell0D estremo della traccia (quella già visitata)
-                                id_NEW_E_T = NewCell1D(frac, id_NEW_V,id_other_extr_tr);
-                                //Inserire in extrnals o internals FAREEEEEEEEEEEE
-
-                                frac.EdgesCell2D[id_NEW_C].push_back(id_NEW_E_T); // inserisco lato traccia nella lista dei lati della cella nuova (e così la concludo)
-                                frac.VerticesCell2D[cell_2D].push_back(id_NEW_V); // inserisco secondo estremo traccia in lista vertici cella originaria
-                                frac.EdgesCell2D[cell_2D].push_back(id_NEW_E_T); // inserisco lato traccia nella lista dei lati della cella originaria
-                                frac.EdgesCell2D[cell_2D].push_back(id_NEW_E); // inserisco nuovo lato (ottenuto a partire da lato corrente) nella lista dei lati della cella originaria
-
-                            }
-                            else // lato corrente NON è coinvolto in traccia
-                            {
-                                frac.VerticesCell2D[id_NEW_C].push_back(vert); // inserisco vertice in lista di vertici della nuova cella
-                                frac.EdgesCell2D[id_NEW_C].push_back(edge); // inserisco lato in lista di lati della nuova cella
-                            }
-                        }
-                        iter_ver++;  // incremento iteratore vertici
-                    }
-                }
-                id_intersez_prec = max(frac.VerticesCell1D[edge2][0],frac.VerticesCell1D[edge2][1]); //id di seconda intersezione come cella0D (è l'id maggiore tra i due vertici del lato2
-            } // fine sottotaglio
-
-            counter_intsz +=1;
+            cerr << "Taglio non andato a buon fine" << endl;
+            return frac; // restitusce frattura senza aver completato il taglio
         }
-
     }
 
+    // CICLO SU TRACCE NON PASSANTI
+    for (auto it_tr = np_traces.begin(); it_tr != np_traces.end();it_tr++)
+    {
+        unsigned int id_tr = *(it_tr); // identificatore traccia
+        Vector3d ext1_tr = traces_extremes[id_tr](all,0); // coordinate estremo 1 traccia
+        Vector3d ext2_tr = traces_extremes[id_tr](all,1); // coordinate estremo 2 traccia
 
+        // Associo a ciascun estremo l'id del lato sui cui giace (se esiste). Se l'estremo non si trova su alcun lato (interno ricevo -1)
+        int l_1 = edge_to_traceExtreme(ext1_tr,frac);
+        int l_2 = edge_to_traceExtreme(ext2_tr,frac);
+        unsigned int l1;
+        double s1;
+        unsigned int l2;
+        double s2;
+        Vector3d t_T = ext2_tr - ext1_tr; // vettore tangente a rT: ext1_tr + t_T*s (retta su cui giace la traccia) (so che almeno per uno dei due estremi lo dovrò usare)
+        if (l_1==-1) // ext1_tr interno
+        {
+            //Devo cercare intersezione con prolungamento su retta traccia
+            double s_intersez_prolungamento; // ascissa su prolungamento traccia più vicina a extr1 (l'ascissa negativa più piccola in valore assoluto tra quelle incontrate)
+            int l_intersez_prolungamento=-1; // id lato intersecante
+            for (unsigned int e=0; e<frac.NumberCell1D; e++)
+            {
+                // Calcolo intersezione retta rL associata al lato e retta rT associata alla traccia
+                Vector3d t_L = frac.CoordinatesCell0D[frac.VerticesCell1D[e][1]] - frac.CoordinatesCell0D[frac.VerticesCell1D[e][0]] ; // vettore tangente a rL
+                Vector3d pv_TL(t_T[1]*t_L[2]-t_T[2]*t_L[1],t_T[0]*t_L[2]+t_T[2]*t_L[0], t_T[0]*t_L[1]-t_T[1]*t_L[0]); // prodotto vettoriale tra t_T e t_L
+                if ((pv_TL[0]*pv_TL[0]+pv_TL[1]*pv_TL[1]+pv_TL[2]*pv_TL[2])>frac.tolerance) // se t_T e t_L NON sono paralleli (norma pv_TL NON nulla) calcolo possibile intersezione
+                {
+                    Matrix<double,3,2> M{{t_T[0],t_L[0]},{t_T[1],t_L[1]},{t_T[2],t_L[2]}};
+                    Vector3d b = frac.CoordinatesCell0D[frac.VerticesCell1D[e][0]] - ext1_tr ;
+                    Vector2d sol_intersez = M.fullPivLu().solve(b);
+                    double s = sol_intersez[0]; // ascissa intersezione su rT: ext1_tr + t_T*s
+                    if (s<-frac.tolerance) // ascissa negativa
+                    {
+                        if (l_intersez_prolungamento==-1)
+                        {
+                            l_intersez_prolungamento=e;
+                            s_intersez_prolungamento=s;
+                        }
+                        else
+                            if(s>s_intersez_prolungamento)
+                            {
+                                l_intersez_prolungamento=e;
+                                s_intersez_prolungamento=s;
+                            }
+                    }
+                }
+            }
+            if (l_intersez_prolungamento==-1)
+            {
+                cerr << "Traccia non passante NON prolungata" << endl;
+                return frac;
+            }
+            else
+            {
+                l1=l_intersez_prolungamento;
+                s1=s_intersez_prolungamento;
+            }
+        }
+        else // ext1_tr esterno (non devo prolungare)
+        {
+            l1=l_1;
+            s1=0;
+        }
+        if (l_2==-1) // ext2_tr interno
+        {
+            //Devo cercare intersezione con prolungamento su retta traccia
+            double s_intersez_prolungamento; // ascissa su prolungamento traccia più vicina a extr2 (l'ascissa positiva e maggiore di 1 più piccola tra quelle incontrate)
+            int l_intersez_prolungamento=-1; // id lato intersecante
+            for (unsigned int e=0; e<frac.NumberCell1D; e++)
+            {
+                // Calcolo intersezione retta rL associata al lato e retta rT associata alla traccia
+                Vector3d t_L = frac.CoordinatesCell0D[frac.VerticesCell1D[e][1]] - frac.CoordinatesCell0D[frac.VerticesCell1D[e][0]] ; // vettore tangente a rL
+                Vector3d pv_TL(t_T[1]*t_L[2]-t_T[2]*t_L[1],t_T[0]*t_L[2]+t_T[2]*t_L[0], t_T[0]*t_L[1]-t_T[1]*t_L[0]); // prodotto vettoriale tra t_T e t_L
+                if ((pv_TL[0]*pv_TL[0]+pv_TL[1]*pv_TL[1]+pv_TL[2]*pv_TL[2])>frac.tolerance) // se t_T e t_L NON sono paralleli (norma pv_TL NON nulla) calcolo possibile intersezione
+                {
+                    Matrix<double,3,2> M{{t_T[0],t_L[0]},{t_T[1],t_L[1]},{t_T[2],t_L[2]}};
+                    Vector3d b = frac.CoordinatesCell0D[frac.VerticesCell1D[e][0]] - ext1_tr ;
+                    Vector2d sol_intersez = M.fullPivLu().solve(b);
+                    double s = sol_intersez[0]; // ascissa intersezione su rT: ext1_tr + t_T*s
+                    if (s>1+frac.tolerance) // ascissa maggiore di 1
+                    {
+                        if (l_intersez_prolungamento==-1)
+                        {
+                            l_intersez_prolungamento=e;
+                            s_intersez_prolungamento=s;
+                        }
+                        else
+                            if(s>s_intersez_prolungamento)
+                            {
+                                l_intersez_prolungamento=e;
+                                s_intersez_prolungamento=s;
+                            }
+                    }
+                }
+            }
+            if (l_intersez_prolungamento==-1)
+            {
+                cerr << "Traccia non passante NON prolungata" << endl;
+                return frac;
+            }
+            else
+            {
+                l2=l_intersez_prolungamento;
+                s2=s_intersez_prolungamento;
+            }
+        }
+        else // ext2_tr esterno (non devo prolungare)
+        {
+            l2=l_2;
+            s2=1;
+        }
+
+        // Calcolo intersezioni traccia corrente con lati interni
+        list<Vector2d> intersezioni= IntersectTraceWithInternalEdges(ext1_tr,ext2_tr,frac,internal_edges);
+
+        // Inserisco estremi del taglio (ottenuti con prolungamento)
+        intersezioni.push_front({l1,s1});
+        intersezioni.push_back({l2,s2});
+
+        // Tagli lungo traccia
+        taglio = cut_divided_trace(frac, intersezioni, ext1_tr, ext2_tr, external_edges, internal_edges);
+        if (not taglio)
+        {
+            cerr << "Taglio non andato a buon fine" << endl;
+            return frac; // restitusce frattura senza aver completato il taglio
+        }
+    }
+
+    return frac;
 }
 
 

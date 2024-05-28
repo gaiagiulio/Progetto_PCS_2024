@@ -10,8 +10,12 @@
 using namespace std;
 using namespace Eigen;
 
-/** Restituisce vettore normale al piano passante per i 3 punti **/
-Vector3d NormalToPlane(Vector3d& p0,Vector3d& p1,Vector3d& p2)
+
+namespace DFNLibrary{
+
+/************************************************************* SECONDARY FUNCTIONS ***************************************************/
+
+Vector3d DFN_functions::NormalToPlane(Vector3d& p0,Vector3d& p1,Vector3d& p2)
 {
     Vector3d v1 = p1-p0;
     Vector3d v2 = p2-p0;
@@ -19,9 +23,8 @@ Vector3d NormalToPlane(Vector3d& p0,Vector3d& p1,Vector3d& p2)
     return n;
 }
 
-/** Restituisce un vettore con terza componente= 1 se la frattura interseca la retta r: x=P0+st. Le prime due componenti sono le ascisse curvilinee delle intersezioni con r
- *  terza componente = 0 se frattura NON interseca r **/
-Vector3d IntersectionFractureWithLine(DFNLibrary::DFN& dfn, const unsigned int & idFrac, Vector3d& P0, Vector3d& t, Vector3d& n)
+
+Vector3d DFN_functions::IntersectionFractureWithLine(DFNLibrary::DFN& dfn, const unsigned int & idFrac, Vector3d& P0, Vector3d& t, Vector3d& n)
 {
     Vector3d result(0,0,1);
     bool no_intersect = false;
@@ -143,8 +146,8 @@ Vector3d IntersectionFractureWithLine(DFNLibrary::DFN& dfn, const unsigned int &
     return result;
 }
 
-/** Inserisce l'id della traccia nella lista delle tracce passanti o non per ciascuna delle fratture coinvolte (già ordinate per lunghezza descrescente **/
-void InsertSortedTraces(DFNLibrary::DFN& dfn, const unsigned int & frac, const unsigned int & id_tr, const bool & Tips, const double & length)
+
+void DFN_functions::InsertSortedTraces(DFNLibrary::DFN& dfn, const unsigned int & frac, const unsigned int & id_tr, const bool & Tips, const double & length)
 {
     bool inserted = false;
     if (Tips) // traccia NON passante su frattura
@@ -177,107 +180,9 @@ void InsertSortedTraces(DFNLibrary::DFN& dfn, const unsigned int & frac, const u
     }
 }
 
-/** Restituisce l'id della cell1D su cui giace il punto. Se non trova alcuna cell1D restitisce -1 **/
-unsigned int edge_to_traceExtreme(Vector3d& ext_tr,DFNLibrary::PolygonalMesh& frac)
-{
-    bool l_found= false;
-    unsigned int l;
-    for (unsigned int i=0; i<frac.NumberCell1D; i++)
-    {
-        unsigned int v0 = frac.VerticesCell1D[i][0];  //id vertice 1
-        unsigned int v1 = frac.VerticesCell1D[i][1];  //id vertice 2
+/************************************************************* MAIN FUNCTIONS ***************************************************/
 
-        Vector3d v1_v0 = frac.CoordinatesCell0D[v1]-frac.CoordinatesCell0D[v0]; // vettore da v0 a v1
-        Vector3d ext_v0 = ext_tr-frac.CoordinatesCell0D[v0]; // vettore da v0 a estremo
-        Vector3d n_ext_edge(v1_v0[1]*ext_v0[2]-v1_v0[2]*ext_v0[1],-v1_v0[0]*ext_v0[2]+v1_v0[2]*ext_v0[0], v1_v0[0]*ext_v0[1]-v1_v0[1]*ext_v0[0]); // prodotto vettoriale (cioè normale al piano passante per v0,v1 e estremo)
-        if (n_ext_edge[0]*n_ext_edge[0]+n_ext_edge[1]*n_ext_edge[1]+n_ext_edge[2]*n_ext_edge[2] <= frac.tolerance) // estremo sulla retta contenente il lato (perchè n_ext_edge norma nulla)
-        {
-            double s_ext = (ext_v0[0]/v1_v0[0] + ext_v0[1]/v1_v0[1] + ext_v0[2]/v1_v0[2])/3; // ascissa curvilinea dell'estremo sulla retta R: V0+(V1-V0)s (retta su cui poggia il lato)
-            if ((s_ext>(-frac.tolerance)) && (s_ext<(1+frac.tolerance))) // s in [0,1], cioè estremo nel lato
-            {
-                l=i;
-                l_found= true;
-            }
-        }
-
-        if (l_found) // esco dal ciclo quando trovo il lato
-            break;
-    }
-    if (not l_found)
-    {
-        cerr << "Considered point in NOT on an edge (cell1D)" << endl;
-        return -1;
-    }
-    else
-        return l;
-}
-
-/** Restitusce lista ordinata per ascissa curvilinea crescente (punti da ext1_tr a ext2_tr) delle intersezioni della traccia con estremi (ext1_tr, ext2_tr) con i lati interni.
- *  Elemento i-esimo = (lato intersecato,ascissa intersezione)**/
-list<Vector2d> IntersectTraceWithInternalEdges(Vector3d& ext1_tr,Vector3d& ext2_tr,DFNLibrary::PolygonalMesh& frac,list<unsigned int>& internal_edges)
-{
-    list<Vector2d> intersezioni={}; //lista ordinata di intersezioni traccia (allontanandosi da ext1_tr verso ext2_tr). Ogni vettore primo elemento: lato intersecante, secondo elemento: ascissa su traccia
-    Vector3d t_T = ext2_tr - ext1_tr; // vettore tangente a rT: ext1_tr + t_T*s (retta su cui giace la traccia)
-    for (auto it_edge = internal_edges.begin(); it_edge != internal_edges.end();it_edge++)
-    {
-        unsigned int id_edge = *(it_edge); // identificatore lato corrente
-
-        // Calcolo intersezione retta rL associata al lato e retta rT associata alla traccia
-        Vector3d t_L = frac.CoordinatesCell0D[frac.VerticesCell1D[id_edge][1]] - frac.CoordinatesCell0D[frac.VerticesCell1D[id_edge][0]] ; // vettore tangente a rL
-        Vector3d pv_TL(t_T[1]*t_L[2]-t_T[2]*t_L[1],t_T[0]*t_L[2]+t_T[2]*t_L[0], t_T[0]*t_L[1]-t_T[1]*t_L[0]); // prodotto vettoriale tra t_T e t_L
-        if ((pv_TL[0]*pv_TL[0]+pv_TL[1]*pv_TL[1]+pv_TL[2]*pv_TL[2])>frac.tolerance) // se t_T e t_L NON sono paralleli (norma pv_TL NON nulla) calcolo possibile intersezione
-        {
-            Matrix<double,3,2> M{{t_T[0],t_L[0]},{t_T[1],t_L[1]},{t_T[2],t_L[2]}};
-            Vector3d b = frac.CoordinatesCell0D[frac.VerticesCell1D[id_edge][0]] - ext1_tr ;
-            Vector2d sol_intersez = M.fullPivLu().solve(b);
-            double s = sol_intersez[0]; // ascissa intersezione su rT: ext1_tr + t_T*s
-            if ((s>frac.tolerance) && (s<(1-frac.tolerance))) //intersezione nel segmento della traccia
-            {
-                bool inserted = false;
-                for (auto it_intsz = intersezioni.begin(); it_intsz != intersezioni.end();it_intsz++) // ciclo per inserirlo in ordine
-                {
-                    Vector2d elemento = *(it_intsz);
-                    if ((s < elemento[1]) && (not inserted))
-                    {
-                        intersezioni.insert(it_intsz,{id_edge,s}); // inserisci per ascissa crescente
-                        inserted = true;
-                    }
-                }
-                if (not inserted)
-                    intersezioni.push_back({id_edge,s}); // aggiungi alla fine della lista
-            }
-        }
-    }
-    return intersezioni;
-}
-
-/** Crea nuova cell0D nella PolygonalMesh con coordinate date
- *  frac: PolygonalMesh struct
- *  point: Vector3d con coordinate nuovo punto **/
-unsigned int NewCell0D(DFNLibrary::PolygonalMesh& frac,Vector3d& point)
-{
-    unsigned int id_NEW_V = frac.NumberCell0D;
-    frac.NumberCell0D += 1; // aumento numero cell0D
-    frac.IdCell0D.push_back(id_NEW_V); // inserisco il nuovo id nella mesh
-    frac.CoordinatesCell0D.push_back(point);
-    return id_NEW_V;
-}
-
-/** Crea nuova cell1D nella PolygonalMesh con estremi dati
- *  frac: PolygonalMesh struct
- *  ver1,ver2: unsigned int--> id vertici della cell1D **/
-unsigned int NewCell1D(DFNLibrary::PolygonalMesh& frac, unsigned int&  ver1,unsigned int& ver2)
-{
-    unsigned int id_NEW_E = frac.NumberCell1D;
-    frac.NumberCell1D += 1; // aumento numero cell1D
-    frac.IdCell1D.push_back(id_NEW_E); // inserisco il nuovo id nella mesh
-    frac.VerticesCell1D.push_back({ver1,ver2});
-    return id_NEW_E;
-}
-
-namespace DFNLibrary{
-
-bool ImportFractures(const string& filepath, DFN& dfn)
+bool DFN_functions::ImportFractures(const string& filepath, DFN& dfn)
 {
     ifstream file;
     file.open(filepath);
@@ -348,7 +253,7 @@ bool ImportFractures(const string& filepath, DFN& dfn)
 }
 
 
-void calculateTraces(DFN& dfn)
+void DFN_functions::calculateTraces(DFN& dfn)
 {
     // CALCOLARE TRACCE incrociando tutte le fratture a due a due
     unsigned int num_fractures = dfn.NumberFractures;
@@ -659,7 +564,7 @@ void calculateTraces(DFN& dfn)
 }
 
 
-void PrintTraces(const string& outputFile, DFN& dfn)
+void DFN_functions::PrintTraces(const string& outputFile, DFN& dfn)
 {
     ofstream output(outputFile);
 
@@ -676,7 +581,7 @@ void PrintTraces(const string& outputFile, DFN& dfn)
 }
 
 
-void PrintSortedFractureTraces(const string& outputFile, DFN& dfn)
+void DFN_functions::PrintSortedFractureTraces(const string& outputFile, DFN& dfn)
 {
     ofstream output(outputFile);
 
@@ -701,7 +606,100 @@ void PrintSortedFractureTraces(const string& outputFile, DFN& dfn)
 }
 
 
-PolygonalMesh calculate_fracture_cuts(Matrix3Xd& frac_vertices, list<unsigned int>& p_traces, list<unsigned int>& np_traces,vector<Matrix<double,3,2>>& traces_extremes, double tol)
+unsigned int PolygonalMesh_functions::edge_to_traceExtreme(Vector3d& ext_tr,DFNLibrary::PolygonalMesh& frac)
+{
+    bool l_found= false;
+    unsigned int l;
+    for (unsigned int i=0; i<frac.NumberCell1D; i++)
+    {
+        unsigned int v0 = frac.VerticesCell1D[i][0];  //id vertice 1
+        unsigned int v1 = frac.VerticesCell1D[i][1];  //id vertice 2
+
+        Vector3d v1_v0 = frac.CoordinatesCell0D[v1]-frac.CoordinatesCell0D[v0]; // vettore da v0 a v1
+        Vector3d ext_v0 = ext_tr-frac.CoordinatesCell0D[v0]; // vettore da v0 a estremo
+        Vector3d n_ext_edge(v1_v0[1]*ext_v0[2]-v1_v0[2]*ext_v0[1],-v1_v0[0]*ext_v0[2]+v1_v0[2]*ext_v0[0], v1_v0[0]*ext_v0[1]-v1_v0[1]*ext_v0[0]); // prodotto vettoriale (cioè normale al piano passante per v0,v1 e estremo)
+        if (n_ext_edge[0]*n_ext_edge[0]+n_ext_edge[1]*n_ext_edge[1]+n_ext_edge[2]*n_ext_edge[2] <= frac.tolerance) // estremo sulla retta contenente il lato (perchè n_ext_edge norma nulla)
+        {
+            double s_ext = (ext_v0[0]/v1_v0[0] + ext_v0[1]/v1_v0[1] + ext_v0[2]/v1_v0[2])/3; // ascissa curvilinea dell'estremo sulla retta R: V0+(V1-V0)s (retta su cui poggia il lato)
+            if ((s_ext>(-frac.tolerance)) && (s_ext<(1+frac.tolerance))) // s in [0,1], cioè estremo nel lato
+            {
+                l=i;
+                l_found= true;
+            }
+        }
+
+        if (l_found) // esco dal ciclo quando trovo il lato
+            break;
+    }
+    if (not l_found)
+    {
+        cerr << "Considered point in NOT on an edge (cell1D)" << endl;
+        return -1;
+    }
+    else
+        return l;
+}
+
+
+list<Vector2d> PolygonalMesh_functions::IntersectTraceWithInternalEdges(Vector3d& ext1_tr,Vector3d& ext2_tr,DFNLibrary::PolygonalMesh& frac,list<unsigned int>& internal_edges)
+{
+    list<Vector2d> intersezioni={}; //lista ordinata di intersezioni traccia (allontanandosi da ext1_tr verso ext2_tr). Ogni vettore primo elemento: lato intersecante, secondo elemento: ascissa su traccia
+    Vector3d t_T = ext2_tr - ext1_tr; // vettore tangente a rT: ext1_tr + t_T*s (retta su cui giace la traccia)
+    for (auto it_edge = internal_edges.begin(); it_edge != internal_edges.end();it_edge++)
+    {
+        unsigned int id_edge = *(it_edge); // identificatore lato corrente
+
+        // Calcolo intersezione retta rL associata al lato e retta rT associata alla traccia
+        Vector3d t_L = frac.CoordinatesCell0D[frac.VerticesCell1D[id_edge][1]] - frac.CoordinatesCell0D[frac.VerticesCell1D[id_edge][0]] ; // vettore tangente a rL
+        Vector3d pv_TL(t_T[1]*t_L[2]-t_T[2]*t_L[1],t_T[0]*t_L[2]+t_T[2]*t_L[0], t_T[0]*t_L[1]-t_T[1]*t_L[0]); // prodotto vettoriale tra t_T e t_L
+        if ((pv_TL[0]*pv_TL[0]+pv_TL[1]*pv_TL[1]+pv_TL[2]*pv_TL[2])>frac.tolerance) // se t_T e t_L NON sono paralleli (norma pv_TL NON nulla) calcolo possibile intersezione
+        {
+            Matrix<double,3,2> M{{t_T[0],t_L[0]},{t_T[1],t_L[1]},{t_T[2],t_L[2]}};
+            Vector3d b = frac.CoordinatesCell0D[frac.VerticesCell1D[id_edge][0]] - ext1_tr ;
+            Vector2d sol_intersez = M.fullPivLu().solve(b);
+            double s = sol_intersez[0]; // ascissa intersezione su rT: ext1_tr + t_T*s
+            if ((s>frac.tolerance) && (s<(1-frac.tolerance))) //intersezione nel segmento della traccia
+            {
+                bool inserted = false;
+                for (auto it_intsz = intersezioni.begin(); it_intsz != intersezioni.end();it_intsz++) // ciclo per inserirlo in ordine
+                {
+                    Vector2d elemento = *(it_intsz);
+                    if ((s < elemento[1]) && (not inserted))
+                    {
+                        intersezioni.insert(it_intsz,{id_edge,s}); // inserisci per ascissa crescente
+                        inserted = true;
+                    }
+                }
+                if (not inserted)
+                    intersezioni.push_back({id_edge,s}); // aggiungi alla fine della lista
+            }
+        }
+    }
+    return intersezioni;
+}
+
+
+unsigned int PolygonalMesh_functions::NewCell0D(DFNLibrary::PolygonalMesh& frac,Vector3d& point)
+{
+    unsigned int id_NEW_V = frac.NumberCell0D;
+    frac.NumberCell0D += 1; // aumento numero cell0D
+    frac.IdCell0D.push_back(id_NEW_V); // inserisco il nuovo id nella mesh
+    frac.CoordinatesCell0D.push_back(point);
+    return id_NEW_V;
+}
+
+
+unsigned int PolygonalMesh_functions::NewCell1D(DFNLibrary::PolygonalMesh& frac, unsigned int&  ver1,unsigned int& ver2)
+{
+    unsigned int id_NEW_E = frac.NumberCell1D;
+    frac.NumberCell1D += 1; // aumento numero cell1D
+    frac.IdCell1D.push_back(id_NEW_E); // inserisco il nuovo id nella mesh
+    frac.VerticesCell1D.push_back({ver1,ver2});
+    return id_NEW_E;
+}
+
+
+PolygonalMesh PolygonalMesh_functions::calculate_fracture_cuts(Matrix3Xd& frac_vertices, list<unsigned int>& p_traces, list<unsigned int>& np_traces,vector<Matrix<double,3,2>>& traces_extremes, double tol)
 {
     PolygonalMesh frac;
     frac.tolerance = max(frac.tolerance, tol);

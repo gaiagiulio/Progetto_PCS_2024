@@ -3,6 +3,7 @@
 
 #include "DiscreteFractureNetwork.hpp"
 
+
 namespace DFNLibrary{
 
 struct DFN_functions
@@ -95,6 +96,7 @@ bool cut_divided_trace(DFNLibrary::PolygonalMesh& frac,list<Vector2d>& intersezi
 PolygonalMesh calculate_fracture_cuts(Matrix3Xd& frac_vertices, list<unsigned int>& p_traces, list<unsigned int>& np_traces,
                                       vector<Matrix<double,3,2>>& traces_extremes, double tol);
 };
+
 
 }
 

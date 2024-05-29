@@ -57,6 +57,8 @@ list(APPEND ${CMAKE_PROJECT_NAME}_TEST_includes ${src_test_includes})
 # Add file
 ################################################################################
 
+##file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/DFN/test.txt DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
 # Create executable
 ################################################################################
 add_executable(${CMAKE_PROJECT_NAME} main.cpp ${${CMAKE_PROJECT_NAME}_sources} ${${CMAKE_PROJECT_NAME}_headers})

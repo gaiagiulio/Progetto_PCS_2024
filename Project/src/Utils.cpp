@@ -192,8 +192,12 @@ int PolygonalMesh_functions::edge_to_traceExtreme(Vector3d& ext_tr,DFNLibrary::P
 
         Vector3d v1_v0 = frac.CoordinatesCell0D[v1]-frac.CoordinatesCell0D[v0]; // vettore da v0 a v1
         Vector3d ext_v0 = ext_tr-frac.CoordinatesCell0D[v0]; // vettore da v0 a estremo
-        Vector3d n_ext_edge(v1_v0[1]*ext_v0[2]-v1_v0[2]*ext_v0[1],-v1_v0[0]*ext_v0[2]+v1_v0[2]*ext_v0[0], v1_v0[0]*ext_v0[1]-v1_v0[1]*ext_v0[0]); // prodotto vettoriale (cioè normale al piano passante per v0,v1 e estremo)
-        if (n_ext_edge[0]*n_ext_edge[0]+n_ext_edge[1]*n_ext_edge[1]+n_ext_edge[2]*n_ext_edge[2] <= frac.tolerance) // estremo sulla retta contenente il lato (perchè n_ext_edge norma nulla)
+        Vector3d n_ext_edge(v1_v0[1]*ext_v0[2]-v1_v0[2]*ext_v0[1],
+                            -v1_v0[0]*ext_v0[2]+v1_v0[2]*ext_v0[0],
+                            v1_v0[0]*ext_v0[1]-v1_v0[1]*ext_v0[0]); // prodotto vettoriale (cioè normale al piano passante per v0,v1 e estremo)
+        if (n_ext_edge[0]*n_ext_edge[0]+
+                n_ext_edge[1]*n_ext_edge[1]+
+                n_ext_edge[2]*n_ext_edge[2] <= frac.tolerance) // estremo sulla retta contenente il lato (perchè n_ext_edge norma nulla)
         {
             double s_ext = (ext_v0[0]/v1_v0[0] + ext_v0[1]/v1_v0[1] + ext_v0[2]/v1_v0[2])/3; // ascissa curvilinea dell'estremo sulla retta R: V0+(V1-V0)s (retta su cui poggia il lato)
             if ((s_ext>(-frac.tolerance)) && (s_ext<(1+frac.tolerance))) // s in [0,1], cioè estremo nel lato
@@ -978,7 +982,7 @@ PolygonalMesh PolygonalMesh_functions::calculate_fracture_cuts(Matrix3Xd& frac_v
         unsigned int l2;
         if ((l_1==-1) || (l_2==-1))
         {
-            cerr << "One of the extremes in NOT on an edge (cell1D) but tips=FALSE" << endl;
+            cerr <<"PROBLEM WITH TRACE:" << id_tr <<" \t One of the extremes in NOT on an edge (cell1D) but tips=FALSE" << endl;
             return frac; // restitusce frattura senza completare i tagli
         }
         else
@@ -1036,7 +1040,7 @@ PolygonalMesh PolygonalMesh_functions::calculate_fracture_cuts(Matrix3Xd& frac_v
                     Vector3d b = frac.CoordinatesCell0D[frac.VerticesCell1D[e][0]] - ext1_tr ;
                     Vector2d sol_intersez = M.fullPivLu().solve(b);
                     double s = sol_intersez[0]; // ascissa intersezione su rT: ext1_tr + t_T*s
-                    if (s<-frac.tolerance) // ascissa negativa
+                    if (s<frac.tolerance) // ascissa negativa // vedi se escludere l'estremo
                     {
                         if (l_intersez_prolungamento==-1)
                         {
@@ -1054,7 +1058,7 @@ PolygonalMesh PolygonalMesh_functions::calculate_fracture_cuts(Matrix3Xd& frac_v
             }
             if (l_intersez_prolungamento==-1)
             {
-                cerr << "Traccia non passante NON prolungata" << endl;
+                cerr <<"PROBLEM WITH TRACE:" << id_tr <<" \t Traccia non passante NON prolungata" << endl;
                 return frac;
             }
             else
@@ -1084,7 +1088,7 @@ PolygonalMesh PolygonalMesh_functions::calculate_fracture_cuts(Matrix3Xd& frac_v
                     Vector3d b = frac.CoordinatesCell0D[frac.VerticesCell1D[e][0]] - ext1_tr ;
                     Vector2d sol_intersez = M.fullPivLu().solve(b);
                     double s = sol_intersez[0]; // ascissa intersezione su rT: ext1_tr + t_T*s
-                    if (s>1+frac.tolerance) // ascissa maggiore di 1
+                    if (s>1-frac.tolerance) // ascissa maggiore di 1 // vedi se cambiare il -
                     {
                         if (l_intersez_prolungamento==-1)
                         {
@@ -1102,7 +1106,7 @@ PolygonalMesh PolygonalMesh_functions::calculate_fracture_cuts(Matrix3Xd& frac_v
             }
             if (l_intersez_prolungamento==-1)
             {
-                cerr << "Traccia non passante NON prolungata" << endl;
+                cerr <<"PROBLEM WITH TRACE:" << id_tr <<" \t Traccia non passante NON prolungata" << endl;
                 return frac;
             }
             else

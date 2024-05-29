@@ -17,13 +17,13 @@ int main(int argc, char ** argv)
     {
         istringstream str(argv[1]);
         str >> tol;
-        cout << tol << endl;
+        cout << "Tolleranza da command line: "<< tol << endl;
 
         dfn.tolerance = max(dfn.tolerance, tol);
     }
 
     //Importazione fratture
-    bool operazione = fun_dfn.ImportFractures("D:/Gaia/Politecnico/Programmazione e calcolo scientifico/Progetto_PCS_2024/Project/DFN/FR10_data.txt", dfn);
+    bool operazione = fun_dfn.ImportFractures("D:/Gaia/Politecnico/Programmazione e calcolo scientifico/Progetto_PCS_2024/Project/DFN/FR3_data.txt", dfn);
     if (not operazione)
     {
         cerr << "Error while importing fractures" << endl;
@@ -44,6 +44,7 @@ int main(int argc, char ** argv)
     {
         unsigned int id_frac = dfn.IdFractures[i];
         // nb: controlla che tol sia ancora tolleranza da command line (e se vuoi cambiala)
+        double tol=1.e-11;
         cutted_fractures[i] = fun_mesh.calculate_fracture_cuts(dfn.VerticesFractures[id_frac], dfn.P_Traces[id_frac], dfn.NP_Traces[id_frac], dfn.VerticesTraces, tol);
 
         // print o fai qualcosa

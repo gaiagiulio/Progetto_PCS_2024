@@ -23,6 +23,14 @@ Vector3d DFN_functions::NormalToPlane(Vector3d& p0,Vector3d& p1,Vector3d& p2)
     return n;
 }
 
+inline double DFN_functions::ascissa_curvilinea(Vector3d& V_P0,Vector3d& t)
+{
+    double s = sqrt((V_P0[0]*V_P0[0]+V_P0[1]*V_P0[1]+V_P0[2]*V_P0[2])/(t[0]*t[0]+t[1]*t[1]+t[2]*t[2])); // P0+st=V --> abs(s)=norm(V-P0)/norm(t)
+    if (signbit(V_P0[0]*t[0]+V_P0[1]*t[1]+V_P0[2]*t[2])==true) // prodotto scalare tra v e t negativo
+        s = -s;
+    return s;
+}
+
 
 Vector3d DFN_functions::IntersectionFractureWithLine(DFNLibrary::DFN& dfn, const unsigned int & idFrac, Vector3d& P0, Vector3d& t, Vector3d& n)
 {
@@ -34,6 +42,7 @@ Vector3d DFN_functions::IntersectionFractureWithLine(DFNLibrary::DFN& dfn, const
     bool sign_zero = false;
     bool sign;
     bool sign_first;
+    bool intersectionONline = false; // true se si interseca con lato che giace su retta
 
     Matrix3Xd& ver = dfn.VerticesFractures[idFrac];
     unsigned int numVertices= ver.cols();
@@ -45,7 +54,7 @@ Vector3d DFN_functions::IntersectionFractureWithLine(DFNLibrary::DFN& dfn, const
         bool sign_zero_first = true;
         bool sign_zero = true;
         val_q1 = true;
-        result[0] = (V_P0[0]/t[0] + V_P0[1]/t[1] + V_P0[2]/t[2])/3 ; //calcola ascissa curvilinea di v su retta r:  st=  V_P0. NB: calcolo s in tutte e tre le componenti e faccio la media per avere un risultato robusto
+        result[0] = ascissa_curvilinea(V_P0,t); // calcola ascissa curvilinea di v su retta r:  st=  V_P0.
     }
     else
     {
@@ -62,7 +71,8 @@ Vector3d DFN_functions::IntersectionFractureWithLine(DFNLibrary::DFN& dfn, const
             if (sign_zero == true) // vertice precedente su retta
             {
                 val_q2 = true;
-                result[1] = (V_P0[0]/t[0] + V_P0[1]/t[1] + V_P0[2]/t[2])/3 ; // ascissa curvilinea di v su r
+                result[1] = ascissa_curvilinea(V_P0,t); // ascissa curvilinea di v su r
+                intersectionONline = true;
                 break; // ho trovato le due intersezioni: esco dal ciclo sui vertici
             }
             else
@@ -70,13 +80,13 @@ Vector3d DFN_functions::IntersectionFractureWithLine(DFNLibrary::DFN& dfn, const
                 if (val_q1 == false)
                 {
                     val_q1 = true;
-                    result[0] = (V_P0[0]/t[0] + V_P0[1]/t[1] + V_P0[2]/t[2])/3 ;
+                    result[0] = ascissa_curvilinea(V_P0,t); ;
                     sign_zero = true;
                 }
                 else
                 {
                     val_q2 = true;
-                    result[1]= (V_P0[0]/t[0] + V_P0[1]/t[1] + V_P0[2]/t[2])/3 ; // ascissa curvilinea di v su r
+                    result[1]= ascissa_curvilinea(V_P0,t); // ascissa curvilinea di v su r
                     break; // ho trovato le due intersezioni: esco dal ciclo sui vertici
                 }
             }
@@ -181,7 +191,7 @@ void DFN_functions::InsertSortedTraces(DFNLibrary::DFN& dfn, const unsigned int 
 }
 
 
-int PolygonalMesh_functions::edge_to_traceExtreme(Vector3d& ext_tr,DFNLibrary::PolygonalMesh& frac)
+int DFN_functions::edge_to_traceExtreme(Vector3d& ext_tr,DFNLibrary::PolygonalMesh& frac)
 {
     bool l_found= false;
     unsigned int l;
@@ -199,7 +209,7 @@ int PolygonalMesh_functions::edge_to_traceExtreme(Vector3d& ext_tr,DFNLibrary::P
                 n_ext_edge[1]*n_ext_edge[1]+
                 n_ext_edge[2]*n_ext_edge[2] <= frac.tolerance) // estremo sulla retta contenente il lato (perchè n_ext_edge norma nulla)
         {
-            double s_ext = (ext_v0[0]/v1_v0[0] + ext_v0[1]/v1_v0[1] + ext_v0[2]/v1_v0[2])/3; // ascissa curvilinea dell'estremo sulla retta R: V0+(V1-V0)s (retta su cui poggia il lato)
+            double s_ext = ascissa_curvilinea(ext_v0,v1_v0); // ascissa curvilinea dell'estremo sulla retta R: V0+(V1-V0)s (retta su cui poggia il lato)
             if ((s_ext>(-frac.tolerance)) && (s_ext<(1+frac.tolerance))) // s in [0,1], cioè estremo nel lato
             {
                 l=i;
@@ -217,7 +227,7 @@ int PolygonalMesh_functions::edge_to_traceExtreme(Vector3d& ext_tr,DFNLibrary::P
 }
 
 
-list<Vector2d> PolygonalMesh_functions::IntersectTraceWithInternalEdges(Vector3d& ext1_tr,Vector3d& ext2_tr,DFNLibrary::PolygonalMesh& frac,list<unsigned int>& internal_edges)
+list<Vector2d> DFN_functions::IntersectTraceWithInternalEdges(Vector3d& ext1_tr,Vector3d& ext2_tr,DFNLibrary::PolygonalMesh& frac,list<unsigned int>& internal_edges)
 {
     list<Vector2d> intersezioni={}; //lista ordinata di intersezioni traccia (allontanandosi da ext1_tr verso ext2_tr). Ogni vettore primo elemento: lato intersecante, secondo elemento: ascissa su traccia
     Vector3d t_T = ext2_tr - ext1_tr; // vettore tangente a rT: ext1_tr + t_T*s (retta su cui giace la traccia)
@@ -255,7 +265,7 @@ list<Vector2d> PolygonalMesh_functions::IntersectTraceWithInternalEdges(Vector3d
 }
 
 
-unsigned int PolygonalMesh_functions::NewCell0D(DFNLibrary::PolygonalMesh& frac,Vector3d& point)
+unsigned int DFN_functions::NewCell0D(DFNLibrary::PolygonalMesh& frac,Vector3d& point)
 {
     unsigned int id_NEW_V = frac.NumberCell0D;
     frac.NumberCell0D += 1; // aumento numero cell0D
@@ -265,7 +275,7 @@ unsigned int PolygonalMesh_functions::NewCell0D(DFNLibrary::PolygonalMesh& frac,
 }
 
 
-unsigned int PolygonalMesh_functions::NewCell1D(DFNLibrary::PolygonalMesh& frac, unsigned int&  ver1,unsigned int& ver2)
+unsigned int DFN_functions::NewCell1D(DFNLibrary::PolygonalMesh& frac, unsigned int&  ver1,unsigned int& ver2)
 {
     unsigned int id_NEW_E = frac.NumberCell1D;
     frac.NumberCell1D += 1; // aumento numero cell1D
@@ -275,7 +285,7 @@ unsigned int PolygonalMesh_functions::NewCell1D(DFNLibrary::PolygonalMesh& frac,
 }
 
 
-void PolygonalMesh_functions::InternalExternalEdge(unsigned int& id_NEW_E,unsigned int& edge,list<unsigned int>& external_edges,list<unsigned int>& internal_edges)
+void DFN_functions::InternalExternalEdge(unsigned int& id_NEW_E,unsigned int& edge,list<unsigned int>& external_edges,list<unsigned int>& internal_edges)
 {
     bool external_edge = false; // booleano per inserire nuovo lato tra interni o esterni
     auto it_external = external_edges.begin();
@@ -293,7 +303,7 @@ void PolygonalMesh_functions::InternalExternalEdge(unsigned int& id_NEW_E,unsign
 }
 
 
-bool PolygonalMesh_functions::cut_divided_trace(DFNLibrary::PolygonalMesh& frac,list<Vector2d>& intersezioni, Vector3d& ext1_tr, Vector3d& ext2_tr,list<unsigned int>& external_edges,list<unsigned int>& internal_edges)
+bool DFN_functions::cut_divided_trace(DFNLibrary::PolygonalMesh& frac,list<Vector2d>& intersezioni, Vector3d& ext1_tr, Vector3d& ext2_tr,list<unsigned int>& external_edges,list<unsigned int>& internal_edges)
 {
     unsigned int counter_intsz=1; //utile per alcuni controlli
     unsigned int sz_int= intersezioni.size(); // per evitare di ciclare quando ho solo più un intersezione nella lista
@@ -918,7 +928,7 @@ void DFN_functions::PrintSortedFractureTraces(const string& outputFile, DFN& dfn
 }
 
 
-PolygonalMesh PolygonalMesh_functions::calculate_fracture_cuts(Matrix3Xd& frac_vertices, list<unsigned int>& p_traces, list<unsigned int>& np_traces,vector<Matrix<double,3,2>>& traces_extremes, double tol)
+PolygonalMesh DFN_functions::calculate_fracture_cuts(Matrix3Xd& frac_vertices, list<unsigned int>& p_traces, list<unsigned int>& np_traces,vector<Matrix<double,3,2>>& traces_extremes, double tol)
 {
     PolygonalMesh frac;
     frac.tolerance = max(frac.tolerance, tol);

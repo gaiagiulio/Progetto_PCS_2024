@@ -32,9 +32,9 @@ inline double DFN_functions::ascissa_curvilinea(Vector3d& V_P0,Vector3d& t)
 }
 
 
-Vector3d DFN_functions::IntersectionFractureWithLine(DFNLibrary::DFN& dfn, const unsigned int & idFrac, Vector3d& P0, Vector3d& t, Vector3d& n)
+Vector4d DFN_functions::IntersectionFractureWithLine(DFNLibrary::DFN& dfn, const unsigned int & idFrac, Vector3d& P0, Vector3d& t, Vector3d& n)
 {
-    Vector3d result(0,0,1);
+    Vector4d result(0,0,1,1);
     bool no_intersect = false;
     bool val_q1 = false;
     bool val_q2 = false;
@@ -42,7 +42,6 @@ Vector3d DFN_functions::IntersectionFractureWithLine(DFNLibrary::DFN& dfn, const
     bool sign_zero = false;
     bool sign;
     bool sign_first;
-    bool intersectionONline = false; // true se si interseca con lato che giace su retta
 
     Matrix3Xd& ver = dfn.VerticesFractures[idFrac];
     unsigned int numVertices= ver.cols();
@@ -72,7 +71,7 @@ Vector3d DFN_functions::IntersectionFractureWithLine(DFNLibrary::DFN& dfn, const
             {
                 val_q2 = true;
                 result[1] = ascissa_curvilinea(V_P0,t); // ascissa curvilinea di v su r
-                intersectionONline = true;
+                result[3]= 0;
                 break; // ho trovato le due intersezioni: esco dal ciclo sui vertici
             }
             else
@@ -750,12 +749,12 @@ void DFN_functions::calculateTraces(DFN& dfn)
             Vector3d P0 = A.fullPivLu().solve(b); // P0
 
             // Calcolo se le fratture sono intersecate da r: x = P0 +st
-            // Frattura 1
-            Vector3d int1= IntersectionFractureWithLine(dfn, frac1, P0, t, n1); // vettore con (q1,q2,flag) con q1 e q2 ascisse di intersezioni se esistono
+            // Frattura 1            
+            Vector4d int1= IntersectionFractureWithLine(dfn, frac1, P0, t, n1); // vettore con (q1,q2,flag,flag libro) con q1 e q2 ascisse di intersezioni se esistono
             if (int1[2]<numeric_limits<double>::epsilon()) // uso tol con epsiolon di macchina perchè è in vettore di double (anche se non dovrei avere problemi)
                 continue; // passo a considerare altra coppia di fratture se una non interseca la retta
             //Frattura 2
-            Vector3d int2= IntersectionFractureWithLine(dfn, frac2, P0, t, n2); // vettore con (q1,q2,flag) con q1 e q2 ascisse di intersezioni se esistono
+            Vector4d int2= IntersectionFractureWithLine(dfn, frac2, P0, t, n2); // vettore con (q1,q2,flag, flag libro) con q1 e q2 ascisse di intersezioni se esistono
             if (int2[2]<numeric_limits<double>::epsilon()) // uso tol con epsiolon di macchina perchè è in vettore di double (anche se non dovrei avere problemi)
                 continue;
 
@@ -859,6 +858,10 @@ void DFN_functions::calculateTraces(DFN& dfn)
                     }
                 }
             }
+            if (int1[3]<numeric_limits<double>::epsilon()) // caso libro
+                Tips1 = false;
+            if (int2[3]<numeric_limits<double>::epsilon()) // caso libro
+                Tips2 = false;
 
             // Inserisci traccia trovata (se non è stata trovata si è incappati in continue)
             dfn.NumberTraces += 1;

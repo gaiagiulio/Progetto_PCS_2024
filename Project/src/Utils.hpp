@@ -19,8 +19,9 @@ struct DFN_functions
     double ascissa_curvilinea(Vector3d& V_P0,Vector3d& t);
 
 /** Restituisce un vettore con terza componente= 1 se la frattura interseca la retta r: x=P0+st. Le prime due componenti sono le ascisse curvilinee delle intersezioni con r
- *  terza componente = 0 se frattura NON interseca r **/
-    Vector3d IntersectionFractureWithLine(DFNLibrary::DFN& dfn, const unsigned int & idFrac, Vector3d& P0, Vector3d& t, Vector3d& n);
+ *  terza componente = 0 se frattura NON interseca r
+ *  quarta componente = 0 se intersezione è un lato completamente sulla retta (sennò =1)  **/
+    Vector4d IntersectionFractureWithLine(DFNLibrary::DFN& dfn, const unsigned int & idFrac, Vector3d& P0, Vector3d& t, Vector3d& n);
 
 /** Inserisce l'id della traccia nella lista delle tracce passanti o non per ciascuna delle fratture coinvolte (già ordinate per lunghezza descrescente **/
     void InsertSortedTraces(DFNLibrary::DFN& dfn, const unsigned int & frac, const unsigned int & id_tr, const bool & Tips, const double & length);

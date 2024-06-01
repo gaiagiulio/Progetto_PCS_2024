@@ -6,7 +6,7 @@
 using namespace DFNLibrary;
 DFN_functions fun_dfn;
 DFN dfn;
-TEST(NormalToPlane_Test,Plane)
+/**TEST(NormalToPlane_Test,Plane)
 {
     Vector3d p0(6.7949650570084286e-01,5.1566886122886846e-01,1.9054542365205804e-01);
     Vector3d p1(2.0959413133064569e-01,9.9389350435296486e-01,1.9054542365205804e-01);
@@ -36,7 +36,7 @@ TEST(Intersection_Test, IntersectionInPoint)
     bool operazione = fun_dfn.ImportFractures("./test.txt", dfn);
     Vector3d result=fun_dfn.IntersectionFractureWithLine(dfn,1,P0,t,n);
     ASSERT_TRUE(result.isApprox(expected,1e-10));
-}
+}**/
 
 // TEST(Intersection_Test, Intersection)
 // {

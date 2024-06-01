@@ -26,8 +26,10 @@ struct DFN_functions
 /** Inserisce l'id della traccia nella lista delle tracce passanti o non per ciascuna delle fratture coinvolte (già ordinate per lunghezza descrescente **/
     void InsertSortedTraces(DFNLibrary::DFN& dfn, const unsigned int & frac, const unsigned int & id_tr, const bool & Tips, const double & length);
 
-/** Restituisce l'id della cell1D su cui giace il punto. Se non trova alcuna cell1D restitisce -1 **/
-    int edge_to_traceExtreme(Vector3d& ext_tr,DFNLibrary::PolygonalMesh& frac);
+/** Restituisce l'id della cell1D esterna (lato esterno) su cui giace il punto.
+ *  Se non trova alcuna cell1D esterna, restituisce -1 come primo elemento.
+ *  Se il punto coincide con una cell0D esistente, restituisce prima componente -2 e come seconda componente l'id della cell0D**/
+    Vector2i edge_to_traceExtreme(Vector3d& ext_tr,list<unsigned int>& external_edges,DFNLibrary::PolygonalMesh& frac);
 
 /** Restitusce lista ordinata per ascissa curvilinea crescente (punti da ext1_tr a ext2_tr) delle intersezioni della traccia con estremi (ext1_tr, ext2_tr) con i lati interni.
  *  Elemento i-esimo = (lato intersecato,ascissa intersezione)**/

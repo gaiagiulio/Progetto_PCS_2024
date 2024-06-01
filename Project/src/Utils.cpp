@@ -86,6 +86,8 @@ Vector4d DFN_functions::IntersectionFractureWithLine(DFNLibrary::DFN& dfn, const
                 {
                     val_q2 = true;
                     result[1]= ascissa_curvilinea(V_P0,t); // ascissa curvilinea di v su r
+                    if ((k==numVertices-1)&& sign_zero_first) //lato su retta (primo e ultimo vertice su retta)
+                        result[3]= 0;
                     break; // ho trovato le due intersezioni: esco dal ciclo sui vertici
                 }
             }
@@ -190,12 +192,15 @@ void DFN_functions::InsertSortedTraces(DFNLibrary::DFN& dfn, const unsigned int 
 }
 
 
-int DFN_functions::edge_to_traceExtreme(Vector3d& ext_tr,DFNLibrary::PolygonalMesh& frac)
+Vector2i DFN_functions::edge_to_traceExtreme(Vector3d& ext_tr,list<unsigned int>& external_edges,DFNLibrary::PolygonalMesh& frac)
 {
+    Vector2i result(-1,-1);
+
     bool l_found= false;
-    unsigned int l;
-    for (unsigned int i=0; i<frac.NumberCell1D; i++)
+    //unsigned int l;
+    for (auto it_edge = external_edges.begin(); it_edge != external_edges.end();it_edge++)
     {
+        unsigned int i= *(it_edge); //id lato esterno
         unsigned int v0 = frac.VerticesCell1D[i][0];  //id vertice 1
         unsigned int v1 = frac.VerticesCell1D[i][1];  //id vertice 2
 
@@ -211,7 +216,7 @@ int DFN_functions::edge_to_traceExtreme(Vector3d& ext_tr,DFNLibrary::PolygonalMe
             double s_ext = ascissa_curvilinea(ext_v0,v1_v0); // ascissa curvilinea dell'estremo sulla retta R: V0+(V1-V0)s (retta su cui poggia il lato)
             if ((s_ext>(-frac.tolerance)) && (s_ext<(1+frac.tolerance))) // s in [0,1], cioè estremo nel lato
             {
-                l=i;
+                result[0]=i; //id lato associato al punto
                 l_found= true;
             }
         }
@@ -220,9 +225,28 @@ int DFN_functions::edge_to_traceExtreme(Vector3d& ext_tr,DFNLibrary::PolygonalMe
             break;
     }
     if (not l_found)
-        return -1;
-    else
-        return l;
+        return result;
+    else // controllo che il punto non coincida con un vertice del lato
+    {
+        Vector3d& v0= frac.CoordinatesCell0D[frac.VerticesCell1D[result[0]][0]];
+        Vector3d& v1= frac.CoordinatesCell0D[frac.VerticesCell1D[result[0]][1]];
+        bool ext_is_v0 =((abs(v0[0]-ext_tr[0])/max(max(abs(v0[0]),abs(ext_tr[0])),1.)<frac.tolerance)&&(abs(v0[1]-ext_tr[1])/max(max(abs(v0[1]),abs(ext_tr[1])),1.)<frac.tolerance)
+                          &&(abs(v0[2]-ext_tr[2])/max(max(abs(v0[2]),abs(ext_tr[2])),1.)<frac.tolerance)); // v0==ext_tr
+        bool ext_is_v1 =((abs(v1[0]-ext_tr[0])/max(max(abs(v1[0]),abs(ext_tr[0])),1.)<frac.tolerance)&&(abs(v1[1]-ext_tr[1])/max(max(abs(v1[1]),abs(ext_tr[1])),1.)<frac.tolerance)
+                          &&(abs(v1[2]-ext_tr[2])/max(max(abs(v1[2]),abs(ext_tr[2])),1.)<frac.tolerance)); // v1==ext_tr
+        if(ext_is_v0)
+        {
+            result[1] = frac.VerticesCell1D[result[0]][0];
+            result[0] = -2;
+        }
+        else if (ext_is_v1)
+        {
+            result[1] = frac.VerticesCell1D[result[0]][1];
+            result[0] = -2;
+        }
+
+        return result;
+    }
 }
 
 
@@ -882,8 +906,6 @@ void DFN_functions::calculateTraces(DFN& dfn)
             // NB: controlla se conviene con funzione
         }
 
-
-
     }
 
 }
@@ -955,6 +977,12 @@ PolygonalMesh DFN_functions::calculate_fracture_cuts(Matrix3Xd& frac_vertices, l
     list<unsigned int> external_edges={}; // lista contenente id lati esterni (da escludere per intersezione tracce con lati interni)
     list<unsigned int> internal_edges={}; // lista contenente id lati interni
 
+    vector<Vector2i> edge_to_cells= {}; // in posizione i vettore con gli id delle due celle associate al lato i se è INTERNO, l'id della cella associata e secondo elemento -1 se il lato i è ESTERNO
+    edge_to_cells.reserve(4*num_tot_traces+frac.NumberCell1D); //reserve iniziale con numero pari a quello usato per vettori cell1D
+
+    vector<list<unsigned int>> ver_to_cells= {}; // in posizione i lista di celle associate a vertice i
+    ver_to_cells.reserve(4*num_tot_traces+frac.NumberCell0D); //reserve iniziale con numero pari a quello usato per vettori cell0D
+
     // Inserisco frattura come prima cell2D
     frac.IdCell2D.push_back(0);
     frac.VerticesCell2D.push_back({});
@@ -966,6 +994,7 @@ PolygonalMesh DFN_functions::calculate_fracture_cuts(Matrix3Xd& frac_vertices, l
         frac.IdCell0D.push_back(i);
         frac.CoordinatesCell0D.push_back(frac_vertices(all,i));
         frac.VerticesCell2D[0].push_back(i); // verso antiorario
+        ver_to_cells.push_back({0}); // per ora cell2D 0 è l'unica associata al vertice
     }
     // Inserisco i lati frattura --> cell1D iniziali
     for (unsigned int i=0; i<frac.NumberCell1D; i++)
@@ -977,9 +1006,9 @@ PolygonalMesh DFN_functions::calculate_fracture_cuts(Matrix3Xd& frac_vertices, l
             frac.VerticesCell1D.push_back({i,i+1});
         frac.EdgesCell2D[0].push_back(i);
         external_edges.push_back(i); // tutti i lati della frattura sono esterni
+        edge_to_cells.push_back({0,-1}); // cell2D 0 è associata al lato
     }
 
-    bool taglio;
 
     // CICLO SU TRACCE PASSANTI
     for (auto it_tr = p_traces.begin(); it_tr != p_traces.end();it_tr++)
@@ -989,55 +1018,163 @@ PolygonalMesh DFN_functions::calculate_fracture_cuts(Matrix3Xd& frac_vertices, l
         Vector3d ext2_tr = traces_extremes[id_tr](all,1); // coordinate estremo 2 traccia
 
         // Associo ai due estremi i due lati su cui giacciono
-        int l_1 = edge_to_traceExtreme(ext1_tr,frac);
-        int l_2 = edge_to_traceExtreme(ext2_tr,frac);
-        unsigned int l1;
-        unsigned int l2;
-        if ((l_1==-1) || (l_2==-1))
+        Vector2i l_1 = edge_to_traceExtreme(ext1_tr,external_edges,frac);
+        Vector2i l_2 = edge_to_traceExtreme(ext2_tr,external_edges,frac);
+
+        bool ext1_in_0d = false; //true se estremo 1 in una cell0D
+        bool ext2_in_0d = false; //true se estremo 1 in una cell0D
+
+        if ((l_1[0]==-1) || (l_2[0]==-1))
         {
             cerr <<"PROBLEM WITH TRACE:" << id_tr <<" \t One of the extremes in NOT on an edge (cell1D) but tips=FALSE" << endl;
             return frac; // restitusce frattura senza completare i tagli
         }
-        else
+        else // fare funzione da qui in poi
         {
-            l1 = l_1;
-            l2 = l_2;
+            if (l_1[0]==-2) // estremo 1 in una cell0D
+                ext1_in_0d = true;
+
+            if (l_2[0]==-2) // estremo 2 NON in una cell0D
+                ext2_in_0d = true;
         }
 
-        // CASO LIBRO l1=l2
+
+        unsigned int c2D; //cella corrente
+        list<unsigned int> final_cells2D={}; // lista possibili celle finali (se estremo NON in un vertice vi è solo la sua cella in lista, se è in un vertice contiene più di un elemento)
+        unsigned int l10; //lato1 ottenuto con taglio precedente
+        unsigned int l20; //lato2 ottenuto con taglio precedente
+        bool first_cell = false;
+        bool last_cell = false;
+
+        if ((not ext1_in_0d) && (not ext2_in_0d)) // Caso base: nessun estremo in un vertice
+        {
+            // Mi sposto da estremo 1 a estremo 2
+            unsigned int l1 = l_1[0]; // lato su cui giace estremo 1
+            unsigned int cell1 = edge_to_cells[l1][0]; // associo cella al lato1 (unica perchè lato esterno)
+            unsigned int l2 = l_2[0]; // lato su cui giace estremo 2
+            unsigned int cell2 = edge_to_cells[l2][0]; // associo cella al lato (unica perchè lato esterno)
+
+            c2D = cell1;
+            final_cells2D.push_back(cell2);
+
+            while (not last_cell) // ciclo su celle adiacenti e continuo a tagliare
+            {
+                for (auto it_cellFin = final_cells2D.begin(); it_cellFin != final_cells2D.end();it_cellFin++)
+                {
+                    if (c2D == *(it_cellFin)) // mi trovo nella cella finale (ultima iterazione)
+                        last_cell= true;
+                }
+
+                // Cerco intersezioni di traccia con lati interni della mia cella
+                Vector3d t_T = ext2_tr - ext1_tr; // vettore tangente a rT: ext1_tr + t_T*s (retta su cui giace la traccia)
+                for (auto it_edge = frac.EdgesCell2D[c2D].begin(); it_edge != frac.EdgesCell2D[c2D].end();it_edge++) // ciclo su lati cella
+                {
+                    if (not first_cell)
+                        if ((*(it_edge)== l10) ||(*(it_edge)== l20))
+                            continue; // non considero lato di intersezione nota
+                    for (auto it_edge_int = internal_edges.begin(); it_edge_int != internal_edges.end();it_edge_int++)
+                    {
+                        if (*(it_edge)==*(it_edge_int)) // considero solo lati interni
+                        {
+                            unsigned int l=*(it_edge); // id lato intersecato
+                            Vector3d t_L = frac.CoordinatesCell0D[frac.VerticesCell1D[l][1]] - frac.CoordinatesCell0D[frac.VerticesCell1D[l][0]] ; // vettore tangente a rL t_L=v1-v0
+                            Vector3d pv_TL(t_T[1]*t_L[2]-t_T[2]*t_L[1],t_T[0]*t_L[2]+t_T[2]*t_L[0], t_T[0]*t_L[1]-t_T[1]*t_L[0]); // prodotto vettoriale tra t_T e t_L
+                            if ((pv_TL[0]*pv_TL[0]+pv_TL[1]*pv_TL[1]+pv_TL[2]*pv_TL[2])>frac.tolerance) // se t_T e t_L NON sono paralleli (norma pv_TL NON nulla) calcolo possibile intersezione
+                            {
+                                Matrix<double,3,2> M{{t_T[0],t_L[0]},{t_T[1],t_L[1]},{t_T[2],t_L[2]}};
+                                Vector3d b = frac.CoordinatesCell0D[frac.VerticesCell1D[l][0]] - ext1_tr ;
+                                Vector2d sol_intersez = M.fullPivLu().solve(b);
+                                double t = -sol_intersez[1]; // ascissa intersezione su rL: v0 + t_L*t
+                                if ((t>frac.tolerance) && (t<(1-frac.tolerance))) //intersezione nel segmento del lato
+                                {
+                                    // EFFETTUO TAGLIO in c2D da
+
+                                }
+                            }
+                        }
+                    }
+
+
+                }
+                //salvo i due nuovi lati
+                // segno anche vertice??
+                // caso di intersez multipla cosa segno
+
+                // prendo cella adiacente per lato
+                // se intersezione in vertice nuova cella adiacente per angolo
+                first_cell=false;
+            }
+
+
+
+        }
+        else if ((not ext1_in_0d) && (ext2_in_0d)) // Secondo vertice in estremo
+        {
+            // Mi sposto da estremo 1 a estremo 2
+            unsigned int l1 = l_1[0]; // lato su cui giace estremo 1
+            unsigned int cell1 = edge_to_cells[l1][0];
+            unsigned int vert2= l_2[1];
+            list<unsigned int> possible_cell2= ver_to_cells[l_2[1]];
+
+        }
+        else if ((not ext2_in_0d) && (ext2_in_0d)) // Primo vertice in estremo
+        {
+            // Mi sposto da estremo 2 a estremo 1
+            unsigned int l2 = l_2[0]; // lato su cui giace estremo 2
+            unsigned int cell2 = edge_to_cells[l2][0];
+            unsigned int vert1= l_1[1];
+            list<unsigned int> possible_cell1= ver_to_cells[l_1[1]];
+        }
+        else
+        {
+
+            // caso entrambe in vertice da scrivere
+        }
+
+
+
+        // CASO LIBRO l1=l2 (lo gestisco internamente
 
         // Calcolo intersezioni traccia corrente con lati interni
-        list<Vector2d> intersezioni= IntersectTraceWithInternalEdges(ext1_tr,ext2_tr,frac,internal_edges);
+        //list<Vector2d> intersezioni= IntersectTraceWithInternalEdges(ext1_tr,ext2_tr,frac,internal_edges);
 
         // Inserisco estremi traccia (intersezioni con lati esterni
-        intersezioni.push_front({l1,0});
-        intersezioni.push_back({l2,1});
+        //intersezioni.push_front({l1,0});
+        //intersezioni.push_back({l2,1});
 
         // Tagli lungo traccia
-        taglio = cut_divided_trace(frac, intersezioni, ext1_tr, ext2_tr, external_edges, internal_edges);
+        /**taglio = cut_divided_trace(frac, intersezioni, ext1_tr, ext2_tr, external_edges, internal_edges);
         if (not taglio)
         {
             cerr << "Taglio non andato a buon fine" << endl;
             return frac; // restitusce frattura senza aver completato il taglio
-        }
+        }**/
     }
 
     // CICLO SU TRACCE NON PASSANTI
-    for (auto it_tr = np_traces.begin(); it_tr != np_traces.end();it_tr++)
+    /**for (auto it_tr = np_traces.begin(); it_tr != np_traces.end();it_tr++)
     {
         unsigned int id_tr = *(it_tr); // identificatore traccia
         Vector3d ext1_tr = traces_extremes[id_tr](all,0); // coordinate estremo 1 traccia
         Vector3d ext2_tr = traces_extremes[id_tr](all,1); // coordinate estremo 2 traccia
 
-        // Associo a ciascun estremo l'id del lato sui cui giace (se esiste). Se l'estremo non si trova su alcun lato (interno ricevo -1)
-        int l_1 = edge_to_traceExtreme(ext1_tr,frac);
-        int l_2 = edge_to_traceExtreme(ext2_tr,frac);
+        // Associo a ciascun estremo l'id del lato sui cui giace (se esiste). Se l'estremo non si trova su alcun lato (interno) ricevo -1
+        Vector2i l_1 = edge_to_traceExtreme(ext1_tr, external_edges, frac);
+        Vector2i l_2 = edge_to_traceExtreme(ext2_tr, external_edges,frac);
+        //farci funzione
         unsigned int l1;
         double s1;
+        Vector2i cells1;
         unsigned int l2;
         double s2;
+        Vector2i cells2;
+
+        bool ext1_in_0d = false; //true se estremo 1 in una cell0D
+        bool ext2_in_0d = false; //true se estremo 1 in una cell0D
+        // INSERIRE CONTROLLI PER ESTREMO IN VERTICE
+
         Vector3d t_T = ext2_tr - ext1_tr; // vettore tangente a rT: ext1_tr + t_T*s (retta su cui giace la traccia) (so che almeno per uno dei due estremi lo dovrò usare)
-        if (l_1==-1) // ext1_tr interno
+        if (l_1[0]==-1) // ext1_tr interno --> PROLUNGO
         {
             //Devo cercare intersezione con prolungamento su retta traccia
             double s_intersez_prolungamento; // ascissa su prolungamento traccia più vicina a extr1 (l'ascissa negativa più piccola in valore assoluto tra quelle incontrate)
@@ -1053,7 +1190,7 @@ PolygonalMesh DFN_functions::calculate_fracture_cuts(Matrix3Xd& frac_vertices, l
                     Vector3d b = frac.CoordinatesCell0D[frac.VerticesCell1D[e][0]] - ext1_tr ;
                     Vector2d sol_intersez = M.fullPivLu().solve(b);
                     double s = sol_intersez[0]; // ascissa intersezione su rT: ext1_tr + t_T*s
-                    if (s<frac.tolerance) // ascissa negativa // vedi se escludere l'estremo
+                    if (s<frac.tolerance) // ascissa negativa
                     {
                         if (l_intersez_prolungamento==-1)
                         {
@@ -1078,14 +1215,17 @@ PolygonalMesh DFN_functions::calculate_fracture_cuts(Matrix3Xd& frac_vertices, l
             {
                 l1=l_intersez_prolungamento;
                 s1=s_intersez_prolungamento;
+                cells1 = edge_to_cells[l1];  // associo celle
             }
         }
         else // ext1_tr esterno (non devo prolungare)
         {
             l1=l_1;
             s1=0;
+            cells1 = edge_to_cells[l1];  // associo celle
         }
-        if (l_2==-1) // ext2_tr interno
+
+        if (l_2[0]==-1) // ext2_tr interno --> PROLUNGO
         {
             //Devo cercare intersezione con prolungamento su retta traccia
             double s_intersez_prolungamento; // ascissa su prolungamento traccia più vicina a extr2 (l'ascissa positiva e maggiore di 1 più piccola tra quelle incontrate)
@@ -1126,29 +1266,31 @@ PolygonalMesh DFN_functions::calculate_fracture_cuts(Matrix3Xd& frac_vertices, l
             {
                 l2=l_intersez_prolungamento;
                 s2=s_intersez_prolungamento;
+                cells2 = edge_to_cells[l2];  // associo celle
             }
         }
         else // ext2_tr esterno (non devo prolungare)
         {
             l2=l_2;
             s2=1;
-        }
+            cells2 = edge_to_cells[l2];  // associo celle
+        }**/
 
         // Calcolo intersezioni traccia corrente con lati interni
-        list<Vector2d> intersezioni= IntersectTraceWithInternalEdges(ext1_tr,ext2_tr,frac,internal_edges);
+        //list<Vector2d> intersezioni= IntersectTraceWithInternalEdges(ext1_tr,ext2_tr,frac,internal_edges);
 
         // Inserisco estremi del taglio (ottenuti con prolungamento)
-        intersezioni.push_front({l1,s1});
-        intersezioni.push_back({l2,s2});
+        //intersezioni.push_front({l1,s1});
+        //intersezioni.push_back({l2,s2});
 
         // Tagli lungo traccia
-        taglio = cut_divided_trace(frac, intersezioni, ext1_tr, ext2_tr, external_edges, internal_edges);
+        /**taglio = cut_divided_trace(frac, intersezioni, ext1_tr, ext2_tr, external_edges, internal_edges);
         if (not taglio)
         {
             cerr << "Taglio non andato a buon fine" << endl;
             return frac; // restitusce frattura senza aver completato il taglio
         }
-    }
+    }**/
 
     return frac;
 }

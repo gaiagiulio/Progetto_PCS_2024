@@ -115,7 +115,7 @@ Vector4d DFN_functions::IntersectionFractureWithLine(DFNLibrary::DFN& dfn, const
                     Matrix<double,3,2> M{{t[0],t2[0]},{t[1],t2[1]},{t[2],t2[2]}};
                     Vector3d b2= ver(all,k-1)-P0;
                     Vector2d x = M.fullPivLu().solve(b2); // vettore con prima componente ascissa curvilinea su r, seconda componente ascissa curvilinea su r2
-                    if (val_q1 == false)
+                    if (not val_q1)
                     {
                         val_q1 = true;
                         result[0] = x[0];
@@ -134,10 +134,10 @@ Vector4d DFN_functions::IntersectionFractureWithLine(DFNLibrary::DFN& dfn, const
     }
 
     // gestione dei casi dove unico punto di intersezione con r è il primo vertice (A) e dove la seconda intersezione è tra il primo e l'ultimo vertice (B)
-    if (val_q1 && (not no_intersect))
+    if ((val_q1) && (not no_intersect))
         if (not val_q2)
         {
-            if (sign_zero_first==true) // caso A
+            if (sign_zero_first) // caso A
                 no_intersect=true;
             else // caso B
             {

@@ -22,7 +22,7 @@ int main(int argc, char ** argv)
     }
 
     //Importazione fratture
-    bool operazione = fun_dfn.ImportFractures("D:/Gaia/Politecnico/Programmazione e calcolo scientifico/Progetto_PCS_2024/Project/DFN/FR10_data.txt", dfn);
+    bool operazione = fun_dfn.ImportFractures("C:/Users/utente/PROSEGUIMENTO_PROGETTOPCS/Progetto_PCS_2024/Debug/test.txt", dfn);
     if (not operazione)
     {
         cerr << "Error while importing fractures" << endl;
@@ -31,10 +31,15 @@ int main(int argc, char ** argv)
     std::cout << "N fratture: " << dfn.NumberFractures << std::endl;
 
     fun_dfn.calculateTraces(dfn); // Calcolo tracce
+    Vector3d P0(0,0,0);
+    Vector3d t(1,1,0);
+    Vector3d n(0,0,1);
+    Vector4d res=fun_dfn.IntersectionFractureWithLine(dfn,3,P0,t,n);
+    cout << res;
 
     // Stampa output tracce su file
-    fun_dfn.PrintTraces("PROVA_output_1.txt", dfn);
-    fun_dfn.PrintSortedFractureTraces("PROVA_output_2.txt", dfn);
+    // fun_dfn.PrintTraces("PROVA_output_1.txt", dfn);
+    // fun_dfn.PrintSortedFractureTraces("PROVA_output_2.txt", dfn);
 
     /**vector<PolygonalMesh> cutted_fractures(dfn.NumberFractures); //--> elemento i-esimo= PolygonalMesh di frattura con id=i tagliata
 

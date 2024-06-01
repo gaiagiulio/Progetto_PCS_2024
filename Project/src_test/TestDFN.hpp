@@ -84,7 +84,7 @@ TEST(Intersection_Test, IntersectionTwoEdges)  //verifico il caso in cui la rett
 //     Vector3d P0(0,0,0);
 //     Vector3d t(1,1,0);
 //     Vector3d n(0,0,1);
-//     Vector4d expected(2,0,1,0);
+//     Vector4d expected(0,2,1,0);
 //     bool operazione = fun_dfn.ImportFractures("./test.txt", dfn);
 //     Vector4d result=fun_dfn.IntersectionFractureWithLine(dfn,3,P0,t,n);
 //     ASSERT_TRUE(result.isApprox(expected,1e-10));

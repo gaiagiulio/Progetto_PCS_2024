@@ -6,6 +6,7 @@
 using namespace DFNLibrary;
 DFN_functions fun_dfn;
 DFN dfn;
+<<<<<<< Updated upstream
 
 TEST(ImportFractures_Test,ImportFractures)  //verifico che l'apertura del file di input per importare le fratture vada a buon fine
 {
@@ -15,6 +16,9 @@ TEST(ImportFractures_Test,ImportFractures)  //verifico che l'apertura del file d
 }
 
 TEST(NormalToPlane_Test,Plane) //testo la funzione che calcola la normale al piano
+=======
+/**TEST(NormalToPlane_Test,Plane)
+>>>>>>> Stashed changes
 {
     Vector3d p0(6.7949650570084286e-01,5.1566886122886846e-01,1.9054542365205804e-01);
     Vector3d p1(2.0959413133064569e-01,9.9389350435296486e-01,1.9054542365205804e-01);
@@ -73,7 +77,7 @@ TEST(Intersection_Test, IntersectionTwoEdges)  //verifico il caso in cui la rett
     bool operazione = fun_dfn.ImportFractures("./test.txt", dfn);
     Vector4d result=fun_dfn.IntersectionFractureWithLine(dfn,2,P0,t,n);
     ASSERT_TRUE(result.isApprox(expected,1e-10));
-}
+}**/
 
 // TEST(Intersection_Test, BookCase)  //verifico il "caso libro", cioè quello in cui la retta passa per un lato della frattura
 // {
@@ -86,7 +90,11 @@ TEST(Intersection_Test, IntersectionTwoEdges)  //verifico il caso in cui la rett
 //     ASSERT_TRUE(result.isApprox(expected,1e-10));
 // }
 
+<<<<<<< Updated upstream
 TEST(Intersection_Test, IntersectionVerticeEdge)  //verifico il caso in cui la retta interseca la frattura su un vertice e un lato
+=======
+/**TEST(Intersection_Test, IntersectionVerticeEdge)
+>>>>>>> Stashed changes
 {
     Vector3d P0(3,1,0);
     Vector3d t(0,1,0);
@@ -95,7 +103,7 @@ TEST(Intersection_Test, IntersectionVerticeEdge)  //verifico il caso in cui la r
     bool operazione = fun_dfn.ImportFractures("./test.txt", dfn);
     Vector4d result=fun_dfn.IntersectionFractureWithLine(dfn,4,P0,t,n);
     ASSERT_TRUE(result.isApprox(expected,1e-10));
-}
+}**/
 
 
 

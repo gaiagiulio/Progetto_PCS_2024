@@ -33,7 +33,7 @@ struct DFN_functions
 
 /** Restitusce lista ordinata per ascissa curvilinea crescente (punti da ext1_tr a ext2_tr) delle intersezioni della traccia con estremi (ext1_tr, ext2_tr) con i lati interni.
  *  Elemento i-esimo = (lato intersecato,ascissa intersezione)**/
-    list<Vector2d> IntersectTraceWithInternalEdges(Vector3d& ext1_tr,Vector3d& ext2_tr,DFNLibrary::PolygonalMesh& frac,list<unsigned int>& internal_edges);
+//    list<Vector2d> IntersectTraceWithInternalEdges(Vector3d& ext1_tr,Vector3d& ext2_tr,DFNLibrary::PolygonalMesh& frac,list<unsigned int>& internal_edges);
 
 /** Crea nuova cell0D nella PolygonalMesh con coordinate date
  *  frac: PolygonalMesh struct

@@ -32,22 +32,45 @@ TEST(Intersection_Test, IntersectionInPoint)
     Vector3d P0(1/2,1/4,0);
     Vector3d t(1/2,1/4,0);
     Vector3d n(0,0,1);
-    Vector3d expected(2,0,1);
+    Vector3d expected(0,0,1);
     bool operazione = fun_dfn.ImportFractures("./test.txt", dfn);
     Vector3d result=fun_dfn.IntersectionFractureWithLine(dfn,1,P0,t,n);
+    ASSERT_EQ(expected[2],result[2]);
+}
+
+TEST(Intersection_Test, IntersectionTwoPoints)
+{
+    Vector3d P0(0,0,0);
+    Vector3d t(1,1,0);
+    Vector3d n(0,0,1);
+    Vector3d expected(-1,2,1);
+    bool operazione = fun_dfn.ImportFractures("./test.txt", dfn);
+    Vector3d result=fun_dfn.IntersectionFractureWithLine(dfn,2,P0,t,n);
     ASSERT_TRUE(result.isApprox(expected,1e-10));
 }**/
 
-// TEST(Intersection_Test, Intersection)
+// TEST(Intersection_Test, IntersectionEdge)
 // {
-//     Vector3d P0(-1,-1.33,0);
-//     Vector3d t(1,2.67,0);
+//     Vector3d P0(0,0,0);
+//     Vector3d t(1,1,0);
 //     Vector3d n(0,0,1);
-//     Vector3d expected(-1,2,1);
+//     Vector3d expected(0,0,1);
 //     bool operazione = fun_dfn.ImportFractures("./test.txt", dfn);
-//     Vector3d result=fun_dfn.IntersectionFractureWithLine(dfn,2,P0,t,n);
+//     Vector3d result=fun_dfn.IntersectionFractureWithLine(dfn,3,P0,t,n);
 //     ASSERT_TRUE(result.isApprox(expected,1e-10));
 // }
+
+TEST(Intersection_Test, IntersectionVerticeEdge)
+{
+    Vector3d P0(0,0,0);
+    Vector3d t(1,1,0);
+    Vector3d n(0,0,1);
+    Vector3d expected(-1,3/2,1);
+    bool operazione = fun_dfn.ImportFractures("./test.txt", dfn);
+    Vector3d result=fun_dfn.IntersectionFractureWithLine(dfn,4,P0,t,n);
+    ASSERT_TRUE(result.isApprox(expected,1e-10));
+}
+
 #endif
 
 //.inp

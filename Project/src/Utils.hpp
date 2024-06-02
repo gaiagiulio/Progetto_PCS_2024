@@ -35,15 +35,17 @@ struct DFN_functions
  *  Elemento i-esimo = (lato intersecato,ascissa intersezione)**/
 //    list<Vector2d> IntersectTraceWithInternalEdges(Vector3d& ext1_tr,Vector3d& ext2_tr,DFNLibrary::PolygonalMesh& frac,list<unsigned int>& internal_edges);
 
-/** Crea nuova cell0D nella PolygonalMesh con coordinate date
+/** Crea nuova cell0D nella PolygonalMesh con coordinate date (e inserisce in posizione iesima di ver_to_cells una lista vuota)
  *  frac: PolygonalMesh struct
- *  point: Vector3d con coordinate nuovo punto **/
-    unsigned int NewCell0D(DFNLibrary::PolygonalMesh& frac,Vector3d& point);
+ *  point: Vector3d con coordinate nuovo punto
+ *  ver_to_cells: vector<list<unsigned int>> elemento i-esimo è la lista degli id delle celle associate alla cell0D di id i**/
+    unsigned int NewCell0D(DFNLibrary::PolygonalMesh& frac,Vector3d& point, vector<list<unsigned int>>& ver_to_cells);
 
 /** Crea nuova cell1D nella PolygonalMesh con estremi dati
  *  frac: PolygonalMesh struct
- *  ver1,ver2: unsigned int--> id vertici della cell1D **/
-    unsigned int NewCell1D(DFNLibrary::PolygonalMesh& frac, unsigned int&  ver1,unsigned int& ver2);
+ *  ver1,ver2: unsigned int--> id vertici della cell1D
+ *  edge_to_cells: vector<Vector2i> elemento i-esimo è il vettore degli id delle celle associate alla cell1D di id i (se la cell1D è esterna il secondo elemento è -1)**/
+    unsigned int NewCell1D(DFNLibrary::PolygonalMesh& frac, unsigned int&  ver1,unsigned int& ver2, vector<Vector2i>& edge_to_cells);
 
 /** Inserisce id di nuova cell1D (generata a partire dal lato edge) nella lista dei lati interni o esterni
  *  id_NEW_E: unsigned int --> id di nuova cell1D

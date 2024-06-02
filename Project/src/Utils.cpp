@@ -39,7 +39,6 @@ inline double DFN_functions::ascissa_curvilinea(Vector3d& V_P0,Vector3d& t)
 
 inline Vector3d DFN_functions::IntersectionBetweenLines(Vector3d& t1,Vector3d& t2, Vector3d& p1, Vector3d& p2, double& tol)
 {
-    // t1= T_t t2=T_L
     Vector3d res(0,0,1);
     Vector3d pv(t1[1]*t2[2]-t1[2]*t2[1],-t1[0]*t2[2]+t1[2]*t2[0], t1[0]*t2[1]-t1[1]*t2[0]); // prodotto vettoriale tra t1 e t2
     if ((pv[0]*pv[0]+pv[1]*pv[1]+pv[2]*pv[2])>tol) // se t1 e t2 NON sono paralleli (norma pv_TL NON nulla) calcolo possibile intersezione

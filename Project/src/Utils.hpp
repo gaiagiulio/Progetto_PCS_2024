@@ -12,11 +12,18 @@ struct DFN_functions
 /** Restituisce vettore normale al piano passante per i 3 punti **/
     Vector3d NormalToPlane(Vector3d& p0,Vector3d& p1,Vector3d& p2);
 
-    //fare funzione prod vett
+/** Restituisce prodotto vettoriale tra v1 e v2 **/
+    Vector3d crossProduct(Vector3d& v1,Vector3d& v2);
 
 /** Restituisce ascissa curvinea su P0+st del punto V
  *  V_P0: V-P0, differenza dei due punti**/
     double ascissa_curvilinea(Vector3d& V_P0,Vector3d& t);
+
+/** Calcola l'intersezione tra le due rette r1: p1+t1*s1 e r2: p2+t2*s2.
+ *  Restituisce come terza componentente 0 se le due rette NON si intersecano (sennò dà 1).
+ *  Restituisce come prime componenti rispettivamente s1 e s2, ascisse curvilinee dell'intersezione su r1 e r2 (se si intersecano)
+ *  tol: è la tolleranza usata per valutare intersezione **/
+    Vector3d IntersectionBetweenLines(Vector3d& t1,Vector3d& t2, Vector3d& p1, Vector3d& p2, double& tol);
 
 /** Restituisce un vettore con terza componente= 1 se la frattura interseca la retta r: x=P0+st. Le prime due componenti sono le ascisse curvilinee delle intersezioni con r
  *  terza componente = 0 se frattura NON interseca r
@@ -58,7 +65,7 @@ struct DFN_functions
  * intersezioni: lista di coppie (id lato intersecato, ascissa curvilinea sulla retta ext1_tr + (ext2_tr-ext1_tr)t)
  * ext1_tr, ext2_tr: Vector3d--> estremi traccia
  * external_edges, internal_edges: liste di unsigned int contenenti gli id dei lati esterni e interni**/
-    bool cut_divided_trace(DFNLibrary::PolygonalMesh& frac,list<Vector2d>& intersezioni, Vector3d& ext1_tr, Vector3d& ext2_tr,list<unsigned int>& external_edges,list<unsigned int>& internal_edges);
+ //   bool cut_divided_trace(DFNLibrary::PolygonalMesh& frac,list<Vector2d>& intersezioni, Vector3d& ext1_tr, Vector3d& ext2_tr,list<unsigned int>& external_edges,list<unsigned int>& internal_edges);
 
 /************************************************************* MAIN FUNCTIONS ***************************************************/
 

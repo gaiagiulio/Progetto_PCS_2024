@@ -25,11 +25,11 @@ Vector3d DFN_functions::NormalToPlane(Vector3d& p0,Vector3d& p1,Vector3d& p2) //
     return n;
 }
 
-/**inline Vector3d DFN_functions::crossProduct(Vector3d& v1,Vector3d& v2)
+inline Vector3d DFN_functions::crossProduct(Vector3d& v1,Vector3d& v2)
 {
     Vector3d cross_prod(v1[1]*v2[2]-v1[2]*v2[1],-v1[0]*v2[2]+v1[2]*v2[0], v1[0]*v2[1]-v1[1]*v2[0]);
     return cross_prod;
-}**/
+}
 
 inline double DFN_functions::ascissa_curvilinea(Vector3d& V_P0,Vector3d& t)
 {

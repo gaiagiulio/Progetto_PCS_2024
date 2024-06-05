@@ -10,7 +10,7 @@ DFN dfn;
 TEST(ImportFractures_Test,ImportFractures)  //verifico che l'apertura del file di input per importare le fratture vada a buon fine
 {
     bool expected=true;
-    bool result=fun_dfn.ImportFractures("./test.txt",dfn);
+    bool result=fun_dfn.ImportFractures("C:/Users/utente/PROSEGUIMENTO_PROGETTOPCS/Progetto_PCS_2024/Debug/test.txt",dfn);
     ASSERT_TRUE(expected=result);
 }
 
@@ -75,16 +75,27 @@ TEST(Intersection_Test, IntersectionTwoEdges)  //verifico il caso in cui la rett
     ASSERT_TRUE(result.isApprox(expected,1e-10));
 }
 
-// TEST(Intersection_Test, BookCase)  //verifico il "caso libro", cioè quello in cui la retta passa per un lato della frattura
-// {
-//     Vector3d P0(0,0,0);
-//     Vector3d t(1,1,0);
-//     Vector3d n(0,0,1);
-//     Vector4d expected(0,2,1,0);
-//     bool operazione = fun_dfn.ImportFractures("./test.txt", dfn);
-//     Vector4d result=fun_dfn.IntersectionFractureWithLine(dfn,3,P0,t,n);
-//     ASSERT_TRUE(result.isApprox(expected,1e-10));
-// }
+TEST(Intersection_Test, BookCase_firstVectice)  //verifico il "caso libro", cioè quello in cui la retta passa per un lato della frattura e il primo vertice si trova sulla retta
+{
+    Vector3d P0(0,0,0);
+    Vector3d t(1,1,0);
+    Vector3d n(0,0,1);
+    Vector4d expected(0,2,1,0);
+    bool operazione = fun_dfn.ImportFractures("./test.txt", dfn);
+    Vector4d result=fun_dfn.IntersectionFractureWithLine(dfn,3,P0,t,n);
+    ASSERT_TRUE(result.isApprox(expected,1e-10));
+}
+
+TEST(Intersection_Test, BookCase)  //verifico il "caso libro", cioè quello in cui la retta passa per un lato della frattura ma il primo vertice non si trova sulla retta
+{
+    Vector3d P0(0,-1,0);
+    Vector3d t(1,1,0);
+    Vector3d n(0,0,1);
+    Vector4d expected(0,1,1,0);
+    bool operazione = fun_dfn.ImportFractures("./test.txt", dfn);
+    Vector4d result=fun_dfn.IntersectionFractureWithLine(dfn,4,P0,t,n);
+    ASSERT_TRUE(result.isApprox(expected,1e-10));
+}
 
 
 TEST(Intersection_Test, IntersectionVerticeEdge)
@@ -94,10 +105,29 @@ TEST(Intersection_Test, IntersectionVerticeEdge)
     Vector3d n(0,0,1);
     Vector4d expected(-1,1,1,1);
     bool operazione = fun_dfn.ImportFractures("./test.txt", dfn);
-    Vector4d result=fun_dfn.IntersectionFractureWithLine(dfn,4,P0,t,n);
+    Vector4d result=fun_dfn.IntersectionFractureWithLine(dfn,5,P0,t,n);
     ASSERT_TRUE(result.isApprox(expected,1e-10));
 }
 
+// TEST(CrossProduct_Test,CrossProduct)
+// {
+//     Vector3d v0(1,1,2);
+//     Vector3d v1(0,1,1);
+//     Vector3d expected(-1,-1,1);
+//     Vector3d result=fun_dfn.crossProduct(v0,v1);
+//     ASSERT_EQ(expected,result);
+// }
+
+// TEST(IntersectionLines_Test,IntersectionLines)
+// {
+//     Vector3d t1(1,1,0);
+//     Vector3d t2(-1,1,0);
+//     Vector3d p1(0,0,0);
+//     Vector3d p2(2,0,0);
+//     double tol=1e-10;
+//     Vector3d expected(1,1,1);
+//     Vector3d result=fun_dfn.IntersectionBetweenLines(t1,t2,p1,p2,tol);
+// }
 
 
 #endif

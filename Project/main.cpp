@@ -6,6 +6,7 @@ using namespace DFNLibrary;
 
 int main(int argc, char ** argv)
 {
+
     DFN dfn;
     DFN_functions fun_dfn;
 
@@ -47,11 +48,30 @@ int main(int argc, char ** argv)
         cout << "Lavoro su frattura : "<< id_frac << endl;
         cutted_fractures[i] = fun_dfn.calculate_fracture_cuts(dfn.VerticesFractures[id_frac], dfn.P_Traces[id_frac], dfn.NP_Traces[id_frac], dfn.VerticesTraces, tol);
         cout << "Frattura " << id_frac<< " restituita \n" << endl;
-
     }
+
+    // Crea file da esportare in Paraview per visualizzare la PolygonalMesh generata con il taglio della frattura
+    // Togliere il commentato se si vogliono creare i file
+    // Lettura da terminale di id delle fratture per cui creare i file DA FAREEEEEEEEEEEEEEEEEEEEE
+    list<unsigned int> fracture_to_print = {0,1,2};
+    for (auto it_frac = fracture_to_print.begin(); it_frac != fracture_to_print.end(); it_frac++ )
+    {
+        unsigned int id_frac= *(it_frac); // id frattura per cui creare i file
+        CreateMeshFiles(cutted_fractures[id_frac],id_frac); // Crea file per la frattura id_frac
+    }
+
 
     return 0;
 }
+/**list<int> l={1,2,3,4,5};
+    auto it= l.begin();
+    l.insert(++it,8);
+    l.insert(it,9);
+    for (auto itl= l.begin(); itl!= l.end(); itl++)
+    {
+        cout << *(itl) << endl;
+    }**/
+
 /**
     std::list<int> l={1,2,3,4,5,6};
     auto it = l.begin();

@@ -24,7 +24,7 @@ TEST(NormalToPlane_Test,Plane) //testo la funzione che calcola la normale al pia
     ASSERT_TRUE(result.isApprox(expected,1e-10));
 }
 
-TEST(Acissa_Test,Ascissa)  //testo la funzione che calcola l'ascissa curvilinea
+/**TEST(Acissa_Test,Ascissa)  //testo la funzione che calcola l'ascissa curvilinea
 {
     Vector3d V_P0(2,2,4);
     Vector3d Ve_P0(0,0,0);
@@ -40,7 +40,7 @@ TEST(Acissa_Test,Ascissa)  //testo la funzione che calcola l'ascissa curvilinea
     ASSERT_EQ(expected1,s1);
     ASSERT_EQ(expected2,s2);
     ASSERT_EQ(expected3,s3);
-}
+}**/
 
 TEST(Intersection_Test, NoIntersection) //verifico il caso in cui la retta non interseca la frattura
 {

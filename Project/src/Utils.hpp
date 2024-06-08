@@ -45,10 +45,6 @@ struct DFN_functions
  *  Se il punto coincide con una cell0D esistente, restituisce prima componente -2 e come seconda componente l'id della cell0D**/
     Vector2i edge_to_traceExtreme(Vector3d& ext_tr,list<unsigned int>& external_edges,DFNLibrary::PolygonalMesh& frac);
 
-/** Restitusce lista ordinata per ascissa curvilinea crescente (punti da ext1_tr a ext2_tr) delle intersezioni della traccia con estremi (ext1_tr, ext2_tr) con i lati interni.
- *  Elemento i-esimo = (lato intersecato,ascissa intersezione)**/
-//    list<Vector2d> IntersectTraceWithInternalEdges(Vector3d& ext1_tr,Vector3d& ext2_tr,DFNLibrary::PolygonalMesh& frac,list<unsigned int>& internal_edges);
-
 /** Crea nuova cell0D nella PolygonalMesh con coordinate date (e inserisce in posizione iesima di ver_to_cells una lista vuota)
  *  frac: PolygonalMesh struct
  *  point: Vector3d con coordinate nuovo punto
@@ -64,7 +60,7 @@ struct DFN_functions
 /** Inserisce id di nuova cell1D (generata a partire dal lato edge) nella lista dei lati interni o esterni
  *  id_NEW_E: unsigned int --> id di nuova cell1D
  *  edge: unsigned int --> id di cell1D originaria
- *  external_edges,internal_edges: liste di unsigned int contenenti gli id dei lati**/
+ *  external_edges,internal_edges: liste di unsigned int contenenti gli id dei lati esterni e interni**/
     void InternalExternalEdge(unsigned int& id_NEW_E,unsigned int& edge,list<unsigned int>& external_edges,list<unsigned int>& internal_edges);
 
 /** Cerca intersezioni della traccia con i lati interni della cella corrente.
@@ -83,15 +79,49 @@ struct DFN_functions
  *  v0= id vertice intersez precedente (se edge_found0= false **/
     Vector<double,5> IntersectCellEdges(DFNLibrary::PolygonalMesh& frac,list<unsigned int>& internal_edges,Vector3d& t_T,Vector3d& ext1_tr, unsigned int c2D, bool edge_found0, unsigned int l10, unsigned int l20, unsigned int v0, double s0);
 
-/** Effettua sulla frattura frac il taglio lungo la traccia di estremi ext1_tr e ext2_tr, inserenso nuove cell0D, cell1D, cell2D in frac. Restituisce false se errore nel processo, true altrimenti.
- * frac: PolygonalMesh struct
- * intersezioni: lista di coppie (id lato intersecato, ascissa curvilinea sulla retta ext1_tr + (ext2_tr-ext1_tr)t)
- * ext1_tr, ext2_tr: Vector3d--> estremi traccia
- * external_edges, internal_edges: liste di unsigned int contenenti gli id dei lati esterni e interni**/
- //   bool cut_divided_trace(DFNLibrary::PolygonalMesh& frac,list<Vector2d>& intersezioni, Vector3d& ext1_tr, Vector3d& ext2_tr,list<unsigned int>& external_edges,list<unsigned int>& internal_edges);
+ /** Crea i 2 nuovi vertici e i 2 nuovi lati, li inserisce nella mesh e ne restituisce gli id in ordine di inserimento sulla cella c (ordine antiorario).
+ *  Nella funzione si aggiornano anche le variabili associate ai lati e ai vertici usate da calculate_fracture_cuts e viene aggiornata (se esiste) la cella adiacente.
+ *  frac: PolygonalMesh struct
+ *  external_edges,internal_edges: liste di unsigned int contenenti gli id dei lati esterni e interni
+ *  edge_to_cells: vector<Vector2i> elemento i-esimo è il vettore degli id delle celle associate alla cell1D di id i (se la cell1D è esterna il secondo elemento è -1)
+ *  ver_to_cells: vector<list<unsigned int>> elemento i-esimo è la lista degli id delle celle associate alla cell0D di id i
+ *  c: id cella corrente
+ *  l: id lato corrente
+ *  ext1_tr, ext2_tr: coordinate dei due estremi della traccia (in ordine di incontro ciclando in senso antiorario sui lati di c)
+ *  it_l: puntatore al lato corrente in frac.EdgesCell2D[c]
+ *  it_ver: puntatore al vertice corrente in frac.VerticesCell2D[c] **/
+    Vector<unsigned int,4> BookSpecialCase_EE(DFNLibrary::PolygonalMesh& frac,list<unsigned int>& external_edges,list<unsigned int>& internal_edges, vector<Vector2i>& edge_to_cells, vector<list<unsigned int>>& ver_to_cells, unsigned int& c,
+                                               unsigned int& l, Vector3d& ext1_tr, Vector3d& ext2_tr, list<unsigned int>::iterator& it_l,list<unsigned int>::iterator& it_ver);
 
+ /** Crea il nuovo vertice e il nuovo lato, li inserisce nella mesh e ne restituisce gli id in ordine di inserimento sulla cella c (ordine antiorario).
+ *  Nella funzione si aggiornano anche le variabili associate ai lati e ai vertici usate da calculate_fracture_cuts e viene aggiornata (se esiste) la cella adiacente..
+ *  frac: PolygonalMesh struct
+ *  external_edges,internal_edges: liste di unsigned int contenenti gli id dei lati esterni e interni
+ *  edge_to_cells: vector<Vector2i> elemento i-esimo è il vettore degli id delle celle associate alla cell1D di id i (se la cell1D è esterna il secondo elemento è -1)
+ *  ver_to_cells: vector<list<unsigned int>> elemento i-esimo è la lista degli id delle celle associate alla cell0D di id i
+ *  c: id cella corrente
+ *  l: id lato corrente
+ *  v_in_extr1: booleano. True se il vertice è il primo del lato (ciclando in senso antiorario sui lati della cella), false se è il secondo.
+ *  ext1_tr: coordinate del nuovo estremo della traccia (cell0D non ancora esistente)
+ *  v: id vertice con estremo traccia
+ *  it_l: puntatore al lato corrente in frac.EdgesCell2D[c]
+ *  it_ver: puntatore al vertice corrente in frac.VerticesCell2D[c] **/
+    Vector<unsigned int, 2> BookSpecialCase_VE(DFNLibrary::PolygonalMesh& frac,list<unsigned int>& external_edges,list<unsigned int>& internal_edges, vector<Vector2i>& edge_to_cells, vector<list<unsigned int>>& ver_to_cells, unsigned int& c,
+                                               unsigned int& l, bool& v_in_extr1, Vector3d& ext1_tr, unsigned int& v_end,list<unsigned int>::iterator& it_l,list<unsigned int>::iterator& it_ver);
 
-
+ /** Restituisce vettore di due booleani.
+ *  Prima componente True se si è nel caso di traccia sovrapposta a lato esistente con un vertice esistente e uno nuovo nel lato (book case)
+ *  Seconda componente True se si è nel book case e il taglio è avvenuto con successo
+ *  frac: PolygonalMesh struct
+ *  external_edges,internal_edges: liste di unsigned int contenenti gli id dei lati esterni e interni
+ *  edge_to_cells: vector<Vector2i> elemento i-esimo è il vettore degli id delle celle associate alla cell1D di id i (se la cell1D è esterna il secondo elemento è -1)
+ *  ver_to_cells: vector<list<unsigned int>> elemento i-esimo è la lista degli id delle celle associate alla cell0D di id i
+ *  l10, l2: id lati (servirà solo quello per cui edge_found=true)
+ *  v0, v2: id lati (servirà solo quello per cui edge_found=false)
+ *  ext_tr: coordinate nuovo estremo su lato (cell=d non ancora esistente)
+ *  edge_found0, edge_found2: bool True se l'estremo della traccia nella cella è sul lato, false se è in vertice **/
+    Vector<bool,2> GeneralBookCase(DFNLibrary::PolygonalMesh& frac,list<unsigned int>& external_edges,list<unsigned int>& internal_edges, vector<Vector2i>& edge_to_cells, vector<list<unsigned int>>& ver_to_cells, unsigned int& l10, unsigned int& l2,
+                                    Vector3d& ext_tr, unsigned int& v0, unsigned int& v2, bool& edge_found0, bool& edge_found2);
 /************************************************************* PRIMARY FUNCTIONS ******************************************************************************/
 
 /**+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ PART 1 FUNCTIONS +++++++++++++++++++++++++++++++++++++++++++++**/
@@ -136,6 +166,10 @@ struct DFN_functions
 };
 
 
+/** Genera i file inp per le cell 0D, 1D e 2D della PolygonalMesh frac, che rappresenta la frattura di indice id_frac tagliata.
+ *  Questi file possono essere usati per visualizzare la mesh su Paraview.
+ *  I file sono nominati Geometry0Ds_frac(id_frac).inp, Geometry1Ds_frac(id_frac).inp, Geometry2Ds_frac(id_frac).inp. **/
+void CreateMeshFiles(DFNLibrary::PolygonalMesh& frac, const unsigned int& id_frac);
 
 }
 

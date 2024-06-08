@@ -119,6 +119,44 @@ struct DFN_functions
  *  edge_found0, edge_found2: bool True se l'estremo della traccia nella cella è sul lato, false se è in vertice **/
     Vector<bool,2> GeneralBookCase(DFNLibrary::PolygonalMesh& frac,list<unsigned int>& external_edges,list<unsigned int>& internal_edges, vector<Vector2i>& edge_to_cells, vector<list<unsigned int>>& ver_to_cells, unsigned int& l10, unsigned int& l2,
                                     Vector3d& ext_tr, unsigned int& v0, unsigned int& v2, bool& edge_found0, bool& edge_found2);
+
+
+ /** Restituisce true se il taglio lungo la traccia è stato effettuato correttamente, false se c'è stato un errore e il taglio è stato interrotto.
+ *  PARAMETRI GENERALI DI MESH
+ *  frac: PolygonalMesh struct
+ *  external_edges,internal_edges: liste di unsigned int contenenti gli id dei lati esterni e interni
+ *  edge_to_cells: vector<Vector2i> elemento i-esimo è il vettore degli id delle celle associate alla cell1D di id i (se la cell1D è esterna il secondo elemento è -1)
+ *  ver_to_cells: vector<list<unsigned int>> elemento i-esimo è la lista degli id delle celle associate alla cell0D di id i
+ *  PARAMETRI GENERICI TRACCIA
+ *  id_tr: id traccia
+ *  going_into_last_cell: booleano. True se sto per entrare in ultima cella (cioè taglio su un'unica cell2d)
+ *  final_cells2D: lista degli id delle possibili cell2D finali
+ *  ext1_tr: coordinate estremo 1 traccia
+ *  t_T: vettore associato alla retta della traccia (cioè ext1_tr-ext2_tr)
+ *  PARAMETRI PUNTO INIZIALE TAGLIO
+ *  c2D: id cell2D iniziale
+ *  point1: coordinate punto iniziale traccia (ottenuta con prolungamento se estremo interno)
+ *  l10: id lato iniziale (non serve se edge_found0=true)
+ *  v0: id vertice iniziale (non serve se ver_found0=true)
+ *  edge_found0: bool. True se intersezione iniziale traccia è su un lato
+ *  ver_found0: bool. True se intersezione iniziale traccia è in vertice esistente
+ *  PARAMETRI PUNTO SUCCESSIVO TAGLIO
+ *  l10: id lato successivo (non serve se edge_found2=true)
+ *  v0: id vertice successivo (non serve se ver_found2=true)
+ *  s2: ascissa curvilinea di intersezione successiva
+ *  edge_found2: bool. True se intersezione successiva traccia è su un lato
+ *  ver_found2: bool. True se intersezione successiva traccia è in vertice esistente
+ *  PARAMETRI PUNTO FINALE TAGLIO
+ *  l_end: id lato finale (non serve se edge_found2=true)
+ *  v_end: id vertice fianle (non serve se ver_found2=true)
+ *  s_end: ascissa curvilinea di punto finale taglio sulla retta della traccia
+ *  edge_found_end: bool. True se punto finale taglio è su un lato
+ *  ver_found_end: bool. True se punto finale taglio è in vertice esistente **/
+    bool CutAlongTrace(DFNLibrary::PolygonalMesh& frac,list<unsigned int>& external_edges,list<unsigned int>& internal_edges, vector<Vector2i>& edge_to_cells, vector<list<unsigned int>>& ver_to_cells,
+                       unsigned int& id_tr,bool& going_into_last_cell,list<unsigned int>& final_cells2D, Vector3d& ext1_tr,Vector3d& t_T, unsigned int& c2D, Vector3d& point1,
+                       unsigned int& l10, unsigned int& v0, bool& edge_found0, bool& ver_found0,
+                       unsigned int& l2, unsigned int& v2, double& s2, bool& edge_found2, bool& ver_found2,
+                       unsigned int& l_end, unsigned int& v_end, double& s_end, bool& edge_found_end, bool& ver_found_end);
 /************************************************************* PRIMARY FUNCTIONS ******************************************************************************/
 
 /**+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ PART 1 FUNCTIONS +++++++++++++++++++++++++++++++++++++++++++++**/
@@ -163,9 +201,9 @@ struct DFN_functions
 };
 
 
-/** Genera i file inp per le cell 0D, 1D e 2D della PolygonalMesh frac, che rappresenta la frattura di indice id_frac tagliata.
+/** Genera i file inp per le cell 0D e 1D della PolygonalMesh frac, che rappresenta la frattura di indice id_frac tagliata.
  *  Questi file possono essere usati per visualizzare la mesh su Paraview.
- *  I file sono nominati Geometry0Ds_frac(id_frac).inp, Geometry1Ds_frac(id_frac).inp, Geometry2Ds_frac(id_frac).inp. **/
+ *  I file sono nominati Geometry0Ds_frac(id_frac).inp, Geometry1Ds_frac(id_frac).inp **/
 void CreateMeshFiles(DFNLibrary::PolygonalMesh& frac, const unsigned int& id_frac);
 
 }

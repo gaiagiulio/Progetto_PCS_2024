@@ -6,7 +6,6 @@ using namespace DFNLibrary;
 
 int main(int argc, char ** argv)
 {
-
     DFN dfn;
     DFN_functions fun_dfn;
 
@@ -22,7 +21,8 @@ int main(int argc, char ** argv)
     }
 
     //Importazione fratture
-    bool operazione = fun_dfn.ImportFractures("C:/Users/utente/PROSEGUIMENTO_PROGETTOPCS/Progetto_PCS_2024/Project/DFN/FR10_data.txt", dfn);
+    bool operazione = fun_dfn.ImportFractures("./DFN/FR10_data.txt", dfn);
+
     if (not operazione)
     {
         cerr << "Error while importing fractures" << endl;
@@ -53,51 +53,20 @@ int main(int argc, char ** argv)
 
     // Crea file da esportare in Paraview per visualizzare la PolygonalMesh generata con il taglio della frattura
     // Togliere il commentato se si vogliono creare i file
-    // Lettura da terminale di id delle fratture per cui creare i file DA FAREEEEEEEEEEEEEEEEEEEEE
-    list<unsigned int> fracture_to_print = {0,1,2};
+
+    // Lettura da terminale di id delle fratture per cui creare i file (imposta "Run in terminal" in Projects per poter scrivere in input da terminale)
+    /**cout << "Inserisci gli id delle fratture per cui creare i file da esportare su Paraview (andando a capo dopo ogni id e termmina con F): " << endl;
+    unsigned int ID;
+    list<unsigned int> fracture_to_print={};
+    while (cin >> ID )
+        fracture_to_print.push_back(ID);
+
     for (auto it_frac = fracture_to_print.begin(); it_frac != fracture_to_print.end(); it_frac++ )
     {
         unsigned int id_frac= *(it_frac); // id frattura per cui creare i file
+        cout << "Creo file per frattura " << id_frac <<endl;
         CreateMeshFiles(cutted_fractures[id_frac],id_frac); // Crea file per la frattura id_frac
-    }
-
+    }**/
 
     return 0;
 }
-/**list<int> l={1,2,3,4,5};
-    auto it= l.begin();
-    l.insert(++it,8);
-    l.insert(it,9);
-    for (auto itl= l.begin(); itl!= l.end(); itl++)
-    {
-        cout << *(itl) << endl;
-    }**/
-
-/**
-    std::list<int> l={1,2,3,4,5,6};
-    auto it = l.begin();
-    while (it != l.end())
-    {
-        std::cout << *(it) << std::endl;
-        it++;
-    }
- **/
-
-/**std::list<int> l={1,2,3,4,5,6};
-    for (auto it = l.begin(); it != l.end();it++)
-    {
-        std::cout << *(it) << std::endl;
-    }**/
-/**std::list<int> l={1,2,3,4,5,6};
-    unsigned int j=1;
-    unsigned int sz_l= l.size();
-    for (auto it = l.begin(); it != l.end();it++)
-    {
-        if (j<sz_l)
-            std::cout << *(it) << " e "<< *(next(it))<<std::endl;
-        j +=1;
-    }**/
-/**for (int n : l)
-    {
-        std::cout << n << std::endl;
-    }; **/

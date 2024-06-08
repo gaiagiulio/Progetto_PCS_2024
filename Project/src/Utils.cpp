@@ -2849,7 +2849,7 @@ PolygonalMesh DFN_functions::calculate_fracture_cuts(Matrix3Xd& frac_vertices, l
     frac.VerticesCell1D.shrink_to_fit();
     frac.IdCell2D.shrink_to_fit();
     frac.VerticesCell2D.shrink_to_fit();
-    frac.VerticesCell2D.shrink_to_fit();
+    frac.EdgesCell2D.shrink_to_fit();
     cout << "Lavoro sulla frattura andato a buon fine" << endl; // togli
     return frac;
 }

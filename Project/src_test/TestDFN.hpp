@@ -24,7 +24,7 @@ TEST(NormalToPlane_Test,Plane) //testo la funzione che calcola la normale al pia
     ASSERT_TRUE(result.isApprox(expected,1e-10));
 }
 
-/**TEST(Acissa_Test,Ascissa)  //testo la funzione che calcola l'ascissa curvilinea
+TEST(Acissa_Test,Ascissa)  //testo la funzione che calcola l'ascissa curvilinea
 {
     Vector3d V_P0(2,2,4);
     Vector3d Ve_P0(0,0,0);
@@ -40,7 +40,7 @@ TEST(NormalToPlane_Test,Plane) //testo la funzione che calcola la normale al pia
     ASSERT_EQ(expected1,s1);
     ASSERT_EQ(expected2,s2);
     ASSERT_EQ(expected3,s3);
-}**/
+}
 
 TEST(Intersection_Test, NoIntersection) //verifico il caso in cui la retta non interseca la frattura
 {
@@ -98,7 +98,7 @@ TEST(Intersection_Test, BookCase)  //verifico il "caso libro", cioè quello in c
 }
 
 
-TEST(Intersection_Test, IntersectionVerticeEdge)
+TEST(Intersection_Test, IntersectionVerticeEdge)  //verifico il caso in cui la retta interseca la frattura in un suo lato e un vertice
 {
     Vector3d P0(3,1,0);
     Vector3d t(0,1,0);
@@ -109,26 +109,31 @@ TEST(Intersection_Test, IntersectionVerticeEdge)
     ASSERT_TRUE(result.isApprox(expected,1e-10));
 }
 
-// TEST(CrossProduct_Test,CrossProduct)
-// {
-//     Vector3d v0(1,1,2);
-//     Vector3d v1(0,1,1);
-//     Vector3d expected(-1,-1,1);
-//     Vector3d result=fun_dfn.crossProduct(v0,v1);
-//     ASSERT_EQ(expected,result);
-// }
+TEST(IntersectionLines_Test,IntersectionLines)
+{
+    Vector3d t1(1,1,0);
+    Vector3d t2(-1,1,0);
+    Vector3d p1(0,0,0);
+    Vector3d p2(2,0,0);
+    double tol=1e-10;
+    Vector3d expected(1,1,1);
+    Vector3d result=fun_dfn.IntersectionBetweenLines(t1,t2,p1,p2,tol);
+}
 
-// TEST(IntersectionLines_Test,IntersectionLines)
+// TEST(CalculateTraces_Test, CalculateTraces)
 // {
-//     Vector3d t1(1,1,0);
-//     Vector3d t2(-1,1,0);
-//     Vector3d p1(0,0,0);
-//     Vector3d p2(2,0,0);
-//     double tol=1e-10;
-//     Vector3d expected(1,1,1);
-//     Vector3d result=fun_dfn.IntersectionBetweenLines(t1,t2,p1,p2,tol);
+//     bool operazione=fun_dfn.ImportFractures("C:/Users/utente/PROSEGUIMENTO_PROGETTOPCS/Progetto_PCS_2024/Debug/traces.txt",dfn);
+//     fun_dfn.calculateTraces(dfn);
+//     int num_frac=2;
+//     int res1=dfn.NumberFractures;
+//     fun_dfn.PrintTraces("OUTEST.txt",dfn);
+//     //int num_tr=1;
+//     //int result=dfn.NumberTraces;
+//     //vector<double> length={1};
+//     //vector<double> re={dfn.LengthTraces};
+//     ASSERT_EQ(num_frac,res1);
+//     ASSERT_EQ(fun_dfn.PrintTraces(dfn.NumberTraces),1);
 // }
-
 
 #endif
 

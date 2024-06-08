@@ -14,9 +14,6 @@ struct DFN_functions
 /** Restituisce vettore normale al piano passante per i 3 punti **/
     Vector3d NormalToPlane(Vector3d& p0,Vector3d& p1,Vector3d& p2);
 
-/** Restituisce prodotto vettoriale tra v1 e v2 **/
-    Vector3d crossProduct(Vector3d& v1,Vector3d& v2);
-
 /** Restituisce ascissa curvinea su P0+st del punto V
  *  V_P0: V-P0, differenza dei due punti**/
     double ascissa_curvilinea(Vector3d& V_P0,Vector3d& t);

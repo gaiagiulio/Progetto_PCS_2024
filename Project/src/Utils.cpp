@@ -178,7 +178,6 @@ Vector4d DFN_functions::IntersectionFractureWithLine(DFNLibrary::DFN& dfn, const
     return result;
 }
 
-
 void DFN_functions::InsertSortedTraces(DFNLibrary::DFN& dfn, const unsigned int & frac, const unsigned int & id_tr, const bool & Tips, const double & length)
 {
     bool inserted = false;

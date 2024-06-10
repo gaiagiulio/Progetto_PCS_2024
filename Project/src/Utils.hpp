@@ -37,6 +37,17 @@ struct DFN_functions
 
 /**+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ PART 2 FUNCTIONS +++++++++++++++++++++++++++++++++++++++++++++**/
 
+/** Inizializza la PolygonalMesh e le altre strutture utili per le operazioni di taglio: external_edges,edge_to_cells, ver_to_cells.
+ * Tutte le strutture che inizializza devono essere passate vuote alla funzione.
+ * frac: PolygonalMesh della frattura
+ * external_edges: liste contenenti id lati esterni
+ * edge_to_cells: vettore con in posizione i vettore con gli id delle due celle associate al lato i se è INTERNO, l'id della cella associata e secondo elemento -1 se il lato i è ESTERNO
+ * ver_to_cells: vettore con in posizione i lista di celle associate a vertice i.
+ * frac_vertices: matrice con le coordinate dei vertici della frattura
+ * p_traces, np_traces: liste degli id delle tracce passanti e non **/
+    void InitializeMesh(DFNLibrary::PolygonalMesh& frac,list<unsigned int>& external_edges, vector<Vector2i>& edge_to_cells, vector<list<unsigned int>>& ver_to_cells,
+                        Matrix3Xd& frac_vertices,list<unsigned int>& p_traces, list<unsigned int>& np_traces);
+
 /** Restituisce l'id della cell1D esterna (lato esterno) su cui giace il punto.
  *  Se non trova alcuna cell1D esterna, restituisce -1 come primo elemento.
  *  Se il punto coincide con una cell0D esistente, restituisce prima componente -2 e come seconda componente l'id della cell0D**/

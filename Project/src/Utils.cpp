@@ -213,6 +213,57 @@ void DFN_functions::InsertSortedTraces(DFNLibrary::DFN& dfn, const unsigned int 
 
 /**+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ PART 2 FUNCTIONS +++++++++++++++++++++++++++++++++++++++++++++**/
 
+void DFN_functions::InitializeMesh(DFNLibrary::PolygonalMesh& frac,list<unsigned int>& external_edges, vector<Vector2i>& edge_to_cells, vector<list<unsigned int>>& ver_to_cells,
+                    Matrix3Xd& frac_vertices,list<unsigned int>& p_traces, list<unsigned int>& np_traces)
+{
+    frac.NumberCell0D = frac_vertices.cols(); // numero vertici frattura
+    frac.NumberCell1D = frac.NumberCell0D; // numero lati frattura
+    frac.NumberCell2D = 1; // inizialmente frattura unica cell2D
+
+    unsigned int num_tot_traces = p_traces.size() + np_traces.size();
+    // Faccio reserve iniziale vettori cell0D
+    frac.IdCell0D.reserve(4*num_tot_traces+frac.NumberCell0D);
+    frac.CoordinatesCell0D.reserve(4*num_tot_traces+frac.NumberCell0D);
+    // Faccio reserve iniziale vettori cell1D
+    frac.IdCell1D.reserve(4*num_tot_traces+frac.NumberCell1D);
+    frac.VerticesCell1D.reserve(4*num_tot_traces+frac.NumberCell1D);
+    // Faccio reserve iniziale vettori cell2D
+    frac.IdCell2D.reserve(4*num_tot_traces);
+    frac.VerticesCell2D.reserve(4*num_tot_traces);
+    frac.EdgesCell2D.reserve(4*num_tot_traces);
+
+    edge_to_cells.reserve(4*num_tot_traces+frac.NumberCell1D); //reserve iniziale con numero pari a quello usato per vettori cell1D
+
+    ver_to_cells.reserve(4*num_tot_traces+frac.NumberCell0D); //reserve iniziale con numero pari a quello usato per vettori cell0D
+
+    // Inserisco frattura come prima cell2D
+    frac.IdCell2D.push_back(0);
+    frac.VerticesCell2D.push_back({});
+    frac.EdgesCell2D.push_back({});
+
+    // Inserisco i vertici frattura --> cell0D iniziali
+    for (unsigned int i=0; i<frac.NumberCell0D; i++)
+    {
+        frac.IdCell0D.push_back(i);
+        frac.CoordinatesCell0D.push_back(frac_vertices(all,i));
+        frac.VerticesCell2D[0].push_back(i); // verso antiorario
+        ver_to_cells.push_back({0}); // per ora cell2D 0 è l'unica associata al vertice
+    }
+    // Inserisco i lati frattura --> cell1D iniziali
+    for (unsigned int i=0; i<frac.NumberCell1D; i++)
+    {
+        frac.IdCell1D.push_back(i);
+        if (i==frac.NumberCell1D-1)
+            frac.VerticesCell1D.push_back({i,0}); //ultimo lato unisce primo e ultimo vertice
+        else
+            frac.VerticesCell1D.push_back({i,i+1});
+        frac.EdgesCell2D[0].push_back(i);
+        external_edges.push_back(i); // tutti i lati della frattura sono esterni
+        edge_to_cells.push_back({0,-1}); // cell2D 0 è associata al lato
+    }
+}
+
+
 Vector2i DFN_functions::edge_to_traceExtreme(Vector3d& ext_tr,list<unsigned int>& external_edges,DFNLibrary::PolygonalMesh& frac)
 {
     Vector2i result(-1,-1);
@@ -1534,56 +1585,13 @@ PolygonalMesh DFN_functions::calculate_fracture_cuts(Matrix3Xd& frac_vertices, l
     PolygonalMesh frac;
     frac.tolerance = max(frac.tolerance, tol);
 
-    frac.NumberCell0D = frac_vertices.cols(); // numero vertici frattura
-    frac.NumberCell1D = frac.NumberCell0D; // numero lati frattura
-    frac.NumberCell2D = 1; // inizialmente frattura unica cell2D
-
-    unsigned int num_tot_traces = p_traces.size() + np_traces.size();
-    // Faccio reserve iniziale vettori cell0D
-    frac.IdCell0D.reserve(4*num_tot_traces+frac.NumberCell0D);
-    frac.CoordinatesCell0D.reserve(4*num_tot_traces+frac.NumberCell0D);
-    // Faccio reserve iniziale vettori cell1D
-    frac.IdCell1D.reserve(4*num_tot_traces+frac.NumberCell1D);
-    frac.VerticesCell1D.reserve(4*num_tot_traces+frac.NumberCell1D);
-    // Faccio reserve iniziale vettori cell2D
-    frac.IdCell2D.reserve(4*num_tot_traces);
-    frac.VerticesCell2D.reserve(4*num_tot_traces);
-    frac.EdgesCell2D.reserve(4*num_tot_traces);
-
     list<unsigned int> external_edges={}; // lista contenente id lati esterni (da escludere per intersezione tracce con lati interni)
     list<unsigned int> internal_edges={}; // lista contenente id lati interni
 
     vector<Vector2i> edge_to_cells= {}; // in posizione i vettore con gli id delle due celle associate al lato i se è INTERNO, l'id della cella associata e secondo elemento -1 se il lato i è ESTERNO
-    edge_to_cells.reserve(4*num_tot_traces+frac.NumberCell1D); //reserve iniziale con numero pari a quello usato per vettori cell1D
-
     vector<list<unsigned int>> ver_to_cells= {}; // in posizione i lista di celle associate a vertice i
-    ver_to_cells.reserve(4*num_tot_traces+frac.NumberCell0D); //reserve iniziale con numero pari a quello usato per vettori cell0D
 
-    // Inserisco frattura come prima cell2D
-    frac.IdCell2D.push_back(0);
-    frac.VerticesCell2D.push_back({});
-    frac.EdgesCell2D.push_back({});
-
-    // Inserisco i vertici frattura --> cell0D iniziali
-    for (unsigned int i=0; i<frac.NumberCell0D; i++)
-    {
-        frac.IdCell0D.push_back(i);
-        frac.CoordinatesCell0D.push_back(frac_vertices(all,i));
-        frac.VerticesCell2D[0].push_back(i); // verso antiorario
-        ver_to_cells.push_back({0}); // per ora cell2D 0 è l'unica associata al vertice
-    }
-    // Inserisco i lati frattura --> cell1D iniziali
-    for (unsigned int i=0; i<frac.NumberCell1D; i++)
-    {
-        frac.IdCell1D.push_back(i);
-        if (i==frac.NumberCell1D-1)
-            frac.VerticesCell1D.push_back({i,0}); //ultimo lato unisce primo e ultimo vertice
-        else
-            frac.VerticesCell1D.push_back({i,i+1});
-        frac.EdgesCell2D[0].push_back(i);
-        external_edges.push_back(i); // tutti i lati della frattura sono esterni
-        edge_to_cells.push_back({0,-1}); // cell2D 0 è associata al lato
-    }
+    InitializeMesh(frac, external_edges, edge_to_cells, ver_to_cells, frac_vertices, p_traces, np_traces); // inizializzo la mesh e le strutture necessarie per effettuare i tagli
 
 
     // CICLO SU TRACCE PASSANTI

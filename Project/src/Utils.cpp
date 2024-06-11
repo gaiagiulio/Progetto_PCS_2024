@@ -132,10 +132,9 @@ Vector4d DFN_functions::IntersectionFractureWithLine(DFNLibrary::DFN& dfn, const
                 else // vertice precedente non su retta
                 {
                     // calcolo intersezione tra r e retta r2 passante per il vertice e il precedente con Mx=b con M=(t,Pk-P(k-1)) e b= P(k-1)-P0
-                    Vector3d t2=ver(all,k)-ver(all,k-1);
-                    Matrix<double,3,2> M{{t[0],t2[0]},{t[1],t2[1]},{t[2],t2[2]}};
-                    Vector3d b2= ver(all,k-1)-P0;
-                    Vector2d x = M.fullPivLu().solve(b2); // vettore con prima componente ascissa curvilinea su r, seconda componente ascissa curvilinea su r2
+                    Vector3d t2= ver(all,k)-ver(all,k-1);
+                    Vector3d P2= ver(all,k-1);
+                    Vector3d x = IntersectionBetweenLines(t,t2,P0, P2, dfn.tolerance); // vettore con prima componente ascissa curvilinea su r, seconda componente ascissa curvilinea su r2
                     if (not val_q1)
                     {
                         val_q1 = true;
@@ -163,10 +162,9 @@ Vector4d DFN_functions::IntersectionFractureWithLine(DFNLibrary::DFN& dfn, const
             else // caso B
             {
                 // calcolo intersezione tra r e retta r2 passante per l'ultimo vertice e il primo // con Mx=b con M=(t,Pn-P1) e b= P1-P0
-                Vector3d t2=ver(all,numVertices-1)-ver(all,0);
-                Matrix<double,3,2> M{{t[0],t2[0]},{t[1],t2[1]},{t[2],t2[2]}};
-                Vector3d b2= ver(all,0)-P0;
-                Vector2d x = M.fullPivLu().solve(b2);
+                Vector3d t2= ver(all,numVertices-1)-ver(all,0);
+                Vector3d P2= ver(all,0);
+                Vector3d x = IntersectionBetweenLines(t,t2,P0, P2, dfn.tolerance); // vettore con prima componente ascissa curvilinea su r
                 val_q2 = true;
                 result[1]= x[0];
             }
@@ -1211,7 +1209,7 @@ bool DFN_functions::ImportFractures(const string& filepath, DFN& dfn)
 
     file.close();
 
-    // Controllo banale da togliere!! o modificare
+    // Controllo banale di lettura
     for (unsigned int i=0; i < dfn.NumberFractures; i++)
     {
         cout << "id frattura: " << dfn.IdFractures[i] << endl;
@@ -1242,7 +1240,7 @@ void DFN_functions::calculateTraces(DFN& dfn)
     dfn.VerticesTraces.reserve(N);
     dfn.LengthTraces.reserve(N);
 
-    dfn.P_Traces.resize(num_fractures); // NB: check se serve inizializzare con le liste vuote
+    dfn.P_Traces.resize(num_fractures);
     dfn.NP_Traces.resize(num_fractures);
 
     // Variabile interna alla funzione, di supporto, con dati da NON ricalcolare per ogni frattura (calcolati solo per i=0)

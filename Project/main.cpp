@@ -33,8 +33,8 @@ int main(int argc, char ** argv)
     fun_dfn.calculateTraces(dfn); // Calcolo tracce
 
     // Stampa output tracce su file
-    fun_dfn.PrintTraces("PROVA_output_1.txt", dfn);
-    fun_dfn.PrintSortedFractureTraces("PROVA_output_2.txt", dfn);
+    fun_dfn.PrintTraces("output_1.txt", dfn);
+    fun_dfn.PrintSortedFractureTraces("output_2.txt", dfn);
 
     vector<PolygonalMesh> cutted_fractures(dfn.NumberFractures); //--> elemento i-esimo= PolygonalMesh di frattura con id=i tagliata
 

@@ -31,7 +31,7 @@ struct DFN_functions
  *  quarta componente = 0 se intersezione è un lato completamente sulla retta (sennò =1)  **/
     Vector4d IntersectionFractureWithLine(DFNLibrary::DFN& dfn, const unsigned int & idFrac, Vector3d& P0, Vector3d& t, Vector3d& n);
 
-/** Inserisce l'id della traccia nella lista delle tracce passanti o non per ciascuna delle fratture coinvolte (già ordinate per lunghezza descrescente **/
+/** Inserisce l'id della traccia nella lista delle tracce passanti o non per ciascuna delle fratture coinvolte (già ordinate per lunghezza descrescente) **/
     void InsertSortedTraces(DFNLibrary::DFN& dfn, const unsigned int & frac, const unsigned int & id_tr, const bool & Tips, const double & length);
 
 
@@ -84,7 +84,8 @@ struct DFN_functions
  *  c2D= id cella corrente
  *  edge_found0= true se intersez prec su lato
  *  l10,l20= id dei due lati coinvolti da iteraz prec (se edge_found0= true)
- *  v0= id vertice intersez precedente (se edge_found0= false **/
+ *  v0= id vertice intersez precedente (se edge_found0= false
+ *  s0= ascissa curvilinea di intersezione precedente (si usa solo se positiva)  **/
     Vector<double,5> IntersectCellEdges(DFNLibrary::PolygonalMesh& frac,list<unsigned int>& internal_edges,Vector3d& t_T,Vector3d& ext1_tr, unsigned int c2D, bool edge_found0, unsigned int l10, unsigned int l20, unsigned int v0, double s0);
 
  /** Crea i 2 nuovi vertici e i 2 nuovi lati, li inserisce nella mesh e ne restituisce gli id in ordine di inserimento sulla cella c (ordine antiorario).
@@ -172,19 +173,19 @@ struct DFN_functions
 
 /**+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ PART 1 FUNCTIONS +++++++++++++++++++++++++++++++++++++++++++++**/
 
-    /** Importa fratture dal filepath (path + file name) ( and test if it's correct__ AGGIUNGI)
+/** Importa fratture dal filepath (path + file name)
  *  dfn: DFN struct
- *  restituisce risultato della lettura (true if is success, false otherwise) **/
+ *  Restituisce risultato della lettura (true if is success, false otherwise) **/
     bool ImportFractures(const string& filepath, DFN& dfn);
 
 
- /** Calcola tutte le tracce presenti nel DFN e le salva nello struct dfn.
+/** Calcola tutte le tracce presenti nel DFN e le salva nello struct dfn.
  *  Per ogni frattura salva separatamente l'insieme delle tracce passanti e di quelle non passanti, per ordine descrescente di lunghezza
  *  dfn: DFN struct **/
     void calculateTraces(DFN& dfn);
 
 
- /** Stampa su un file di output il numero totale delle tracce e per ciscuna l'id, le due fratture coinvolte e le coordinate 3D degli estremi.
+/** Stampa su un file di output il numero totale delle tracce e per ciscuna l'id, le due fratture coinvolte e le coordinate 3D degli estremi.
  *  dfn: DFN struct
  *  outputFile: stringa con nome file di output **/
     void PrintTraces(const string& outputFile, DFN& dfn);

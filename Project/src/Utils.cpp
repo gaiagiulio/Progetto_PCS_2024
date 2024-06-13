@@ -1096,7 +1096,10 @@ bool DFN_functions::CutAlongTrace(DFNLibrary::PolygonalMesh& frac,list<unsigned 
                     for (auto it_cellFin = final_cells2D.begin(); it_cellFin != final_cells2D.end();it_cellFin++)
                     {
                         if (*(it_c2D) == *(it_cellFin)) // una delle celle adiacenti al vertice è tra quelle finali--> mi trovo nella cella finale (ultima iterazione)
+                        {
+                            c2D= *(it_c2D);
                             going_into_last_cell= true;
+                        }
                     }
                 }
                 edge_found2=false; // true se intersezione 2 su lato
@@ -1116,7 +1119,7 @@ bool DFN_functions::CutAlongTrace(DFNLibrary::PolygonalMesh& frac,list<unsigned 
                     auto it_cell_ver=ver_to_cells[v0].begin();
                     while((not cell_found) && (it_cell_ver != ver_to_cells[v0].end()))
                     {
-                        unsigned int c2D= *(it_cell_ver);
+                        c2D= *(it_cell_ver);
                         // Ciclo sui lati interni della cella per trovare intersezione
                         Vector<double,5> intersezione= IntersectCellEdges(frac,internal_edges,t_T,ext1_tr,c2D,edge_found0, l10, l20, v0,s2);
                         if (intersezione[4]>frac.tolerance) // ha trovato intersezione
@@ -1208,12 +1211,6 @@ bool DFN_functions::ImportFractures(const string& filepath, DFN& dfn)
     };
 
     file.close();
-
-    // Controllo banale di lettura
-    for (unsigned int i=0; i < dfn.NumberFractures; i++)
-    {
-        cout << "id frattura: " << dfn.IdFractures[i] << endl;
-    }
 
     return true;
 }
@@ -1791,7 +1788,10 @@ PolygonalMesh DFN_functions::calculate_fracture_cuts(Matrix3Xd& frac_vertices, l
                 for (auto it_cellFin = final_cells2D.begin(); it_cellFin != final_cells2D.end();it_cellFin++)
                 {
                     if (*(it_c2D) == *(it_cellFin)) // una delle celle adiacenti al vertice è tra quelle finali--> mi trovo nella cella finale (ultima iterazione)
+                    {
+                        c2D=*(it_c2D);
                         going_into_last_cell= true;
+                    }
                 }
             }
             edge_found2=false; // true se intersezione 2 su lato
@@ -1811,7 +1811,7 @@ PolygonalMesh DFN_functions::calculate_fracture_cuts(Matrix3Xd& frac_vertices, l
                 auto it_cell_ver=ver_to_cells[v0].begin();
                 while((not cell_found) && (it_cell_ver != ver_to_cells[v0].end()))
                 {
-                    unsigned int c2D= *(it_cell_ver);
+                    c2D= *(it_cell_ver);
                     // Ciclo sui lati interni della cella per trovare intersezione
                     Vector<double,5> intersezione= IntersectCellEdges(frac,internal_edges,t_T,ext1_tr,c2D,edge_found0, l10, l20, v0,0);
                     if (intersezione[4]>frac.tolerance) // ha trovato intersezione
@@ -1890,7 +1890,7 @@ PolygonalMesh DFN_functions::calculate_fracture_cuts(Matrix3Xd& frac_vertices, l
                 {
                     sT=intersez[0]; // ascissa su rT
                     sL=intersez[1]; // ascissa su rL
-                    if ((sL>frac.tolerance) && (sL<(1-frac.tolerance)) && (sT<-frac.tolerance)) //intersezione nel segmento del lato (t in (0,1)) e ascissa negativa su retta traccia
+                    if ((sL>frac.tolerance) && (sL<(1-frac.tolerance)) && (sT<frac.tolerance)) //intersezione nel segmento del lato (t in (0,1)) e ascissa negativa (o nulla) su retta traccia. Considero ascissa nulla per eventuale estremo su lato interno
                     {
                         if (not prol_found) // se non ho ancora trovato nulla salvo il risultato
                         {
@@ -1906,7 +1906,7 @@ PolygonalMesh DFN_functions::calculate_fracture_cuts(Matrix3Xd& frac_vertices, l
                             ext1_in_0d=false; // intersezione 1 trovata su lato
                         }
                     }
-                    else if (((abs(sL)<frac.tolerance) || (abs(sL-1)<frac.tolerance)) && (sT<-frac.tolerance)) // intersezione in un vertice del lato e ascissa negativa su retta traccia
+                    else if (((abs(sL)<frac.tolerance) || (abs(sL-1)<frac.tolerance)) && (sT<frac.tolerance)) // intersezione in un vertice del lato e ascissa negativa (o nulla) su retta traccia. Considero ascissa nulla per eventuale estremo su lato interno
                     {
                         if (not prol_found) // se non ho ancora trovato nulla salvo il risultato
                         {
@@ -2015,7 +2015,7 @@ PolygonalMesh DFN_functions::calculate_fracture_cuts(Matrix3Xd& frac_vertices, l
                 {
                     sT=intersez[0]; // ascissa su rT
                     sL=intersez[1]; // ascissa su rL
-                    if ((sL>frac.tolerance) && (sL<(1-frac.tolerance)) && (sT>1+frac.tolerance)) //intersezione nel segmento del lato (t in (0,1)) e ascissa maggiore di 1 su retta traccia
+                    if ((sL>frac.tolerance) && (sL<(1-frac.tolerance)) && (sT>1-frac.tolerance)) //intersezione nel segmento del lato (t in (0,1)) e ascissa maggiore o uguale a 1 su retta traccia. Ascissa=1 se estremo su lato interno
                     {
                         if (not prol_found) // se non ho ancora trovato nulla salvo il risultato
                         {
@@ -2031,7 +2031,7 @@ PolygonalMesh DFN_functions::calculate_fracture_cuts(Matrix3Xd& frac_vertices, l
                             ext2_in_0d=false; // intersezione 2 trovata su lato
                         }
                     }
-                    else if (((abs(sL)<frac.tolerance) || (abs(sL-1)<frac.tolerance)) && (sT>1+frac.tolerance)) // intersezione in un vertice del lato e ascissa maggiore di 1 su retta traccia
+                    else if (((abs(sL)<frac.tolerance) || (abs(sL-1)<frac.tolerance)) && (sT>1-frac.tolerance)) // intersezione in un vertice del lato e ascissa maggiore o uguale a 1 su retta traccia. Ascissa=1 se estremo su lato interno
                     {
                         if (not prol_found) // se non ho ancora trovato nulla salvo il risultato
                         {
@@ -2302,7 +2302,10 @@ PolygonalMesh DFN_functions::calculate_fracture_cuts(Matrix3Xd& frac_vertices, l
                 for (auto it_cellFin = final_cells2D.begin(); it_cellFin != final_cells2D.end();it_cellFin++)
                 {
                     if (*(it_c2D) == *(it_cellFin)) // una delle celle adiacenti al vertice è tra quelle finali--> mi trovo nella cella finale (ultima iterazione)
+                    {
+                        c2D=*(it_c2D);
                         going_into_last_cell= true;
+                    }
                 }
             }
             edge_found2=false; // true se intersezione 2 su lato
@@ -2322,7 +2325,7 @@ PolygonalMesh DFN_functions::calculate_fracture_cuts(Matrix3Xd& frac_vertices, l
                 auto it_cell_ver=ver_to_cells[v0].begin();
                 while((not cell_found) && (it_cell_ver != ver_to_cells[v0].end()))
                 {
-                    unsigned int c2D= *(it_cell_ver);
+                    c2D= *(it_cell_ver);
                     // Ciclo sui lati interni della cella per trovare intersezione
                     Vector<double,5> intersezione= IntersectCellEdges(frac,internal_edges,t_T,ext1_tr,c2D,edge_found0, l10, l20, v0,0);
                     if (intersezione[4]>frac.tolerance) // ha trovato intersezione

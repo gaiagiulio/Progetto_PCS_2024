@@ -47,7 +47,7 @@ struct PolygonalMesh
     vector<list<unsigned int>> VerticesCell2D = {}; // vertici Cell2D --> lista di vertici in senso antiorario
     vector<list<unsigned int>> EdgesCell2D = {}; // lati Cell2D --> lista di lati in senso antiorario
 
-    double tolerance = 10000*numeric_limits<double>::epsilon();
+    double tolerance = 1000*numeric_limits<double>::epsilon();
 };
 
 

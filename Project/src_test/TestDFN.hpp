@@ -637,6 +637,469 @@ TEST(calculate_fracture_cuts_test,calculate_fracture_cuts_casobase)
 }
 
 
+TEST(IntersectCellsEdges_test,IntersectCellsEdges)
+{
+    PolygonalMesh frac;
+    frac.NumberCell0D = 8; // Numero totale Cell0D
+    for (unsigned int i=0; i<8; i++)
+        frac.IdCell0D.push_back(i);
+    frac.CoordinatesCell0D.push_back({0,0,0});
+    frac.CoordinatesCell0D.push_back({2,0,0});
+    frac.CoordinatesCell0D.push_back({4,0,0});
+    frac.CoordinatesCell0D.push_back({7,0,0});
+    frac.CoordinatesCell0D.push_back({7,5,0});
+    frac.CoordinatesCell0D.push_back({4, 5 ,0});
+    frac.CoordinatesCell0D.push_back({2,5,0});
+    frac.CoordinatesCell0D.push_back({0,5,0});
+    frac.NumberCell1D = 10; // Numero totale Cell1D
+    for (unsigned int i=0; i<10; i++)
+        frac.IdCell1D.push_back((i));
+    frac.VerticesCell1D.push_back({0,1});
+    frac.VerticesCell1D.push_back({1,2});
+    frac.VerticesCell1D.push_back({2,3});
+    frac.VerticesCell1D.push_back({3,4});
+    frac.VerticesCell1D.push_back({4,5});
+    frac.VerticesCell1D.push_back({5,6});
+    frac.VerticesCell1D.push_back({6,7});
+    frac.VerticesCell1D.push_back({7,0});
+    frac.VerticesCell1D.push_back({6,1});
+    frac.VerticesCell1D.push_back({5,2});
+    frac.NumberCell2D = 3; // Numero totale Cell2D
+    for (unsigned int i=0; i<3; i++)
+        frac.IdCell2D.push_back(i);
+    frac.VerticesCell2D.push_back({0,1,6,7});
+    frac.VerticesCell2D.push_back({1,2,5,6});
+    frac.VerticesCell2D.push_back({2,3,4,5});
+    frac.EdgesCell2D.push_back({0,8,6,7});
+    frac.EdgesCell2D.push_back({1,9,5,8});
+    frac.EdgesCell2D.push_back({2,3,4,9});
+    // lati Cell2D --> lista di lati in senso antiorario
+    double tolerance = 10000*numeric_limits<double>::epsilon();
+    list<unsigned int> internal_edges({8,9});
+    Vector3d t_T(4,0,0);
+    Vector3d ext1_tr(0,2,0);
+    unsigned int c2D=0;
+    bool edge_found0=true;
+    unsigned int l10=7;
+    unsigned int l20=7;
+    unsigned int v0=0;
+    double s0=0.0;
+    Vector<double,5> expected(8,0.5,0,true,true);
+    Vector<double,5> result(fun_dfn.IntersectCellEdges(frac, internal_edges, t_T, ext1_tr, c2D, edge_found0, l10, l20, v0, s0));
+    ASSERT_TRUE(result.isApprox(expected,1e-10));
+}
+
+ TEST(BookCase_test,BookCase_EE)
+ {
+    PolygonalMesh frac;
+    frac.NumberCell0D = 4; // Numero totale Cell0D
+    for (unsigned int i=0; i<4; i++)
+        frac.IdCell0D.push_back(i); // identificatori Cell0D --> intero positivo (dimensione 1)
+    frac.CoordinatesCell0D.push_back({4,0,0});
+    frac.CoordinatesCell0D.push_back({4,3,0});
+    frac.CoordinatesCell0D.push_back({0,3,0});
+    frac.CoordinatesCell0D.push_back({0,0,0});
+
+
+    frac.NumberCell1D = 4; // Numero totale Cell1D
+    for (unsigned int i=0; i<4; i++)
+        frac.IdCell1D.push_back(i); // identificatori Cell1D --> intero positivo (dimensione 1)
+    frac.VerticesCell1D.push_back({0,1});
+    frac.VerticesCell1D.push_back({1,2});
+    frac.VerticesCell1D.push_back({2,3});
+    frac.VerticesCell1D.push_back({3,0});
+
+    frac.NumberCell2D = 1; // Numero totale Cell2D
+    frac.IdCell2D = {0}; // identificatori Cell2D --> intero positivo (dimensione 1)
+    frac.VerticesCell2D.push_back({0,1,2,3});
+    frac.EdgesCell2D.push_back({0,1,2,3});
+
+    double tolerance = 10000*numeric_limits<double>::epsilon();
+
+    list<unsigned int> internal_edges={};
+    list<unsigned int> external_edges={0,1,2,3};
+    unsigned int c=0;
+    unsigned int l=3;
+    Vector3d ext1_tr(1,0,0);
+    Vector3d ext2_tr(3,0,0);
+    vector<Vector2i> edge_to_cells={{0,-1}, {0,-1}, {0,-1}, {0,-1}};
+    vector<list<unsigned int>> ver_to_cells={{0},{0},{0},{0}};
+    list<unsigned int>::iterator it_l={frac.EdgesCell2D[c].begin()};
+    list<unsigned int>::iterator it_ver={frac.VerticesCell2D[c].begin()};
+    Vector<unsigned int,4> expected(4,5,4,5);
+    Vector<unsigned int,4> result(fun_dfn.BookSpecialCase_EE(frac, external_edges, internal_edges, edge_to_cells, ver_to_cells, c,
+                                                    l, ext1_tr, ext2_tr, it_l, it_ver));
+    ASSERT_TRUE(result.isApprox(expected,1e-10));
+ }
+
+TEST(BookCase_test,BookCase_VE)
+{
+    PolygonalMesh frac;
+    frac.NumberCell0D = 4; // Numero totale Cell0D
+    for (unsigned int i=0; i<4; i++)
+        frac.IdCell0D.push_back(i); // identificatori Cell0D --> intero positivo (dimensione 1)
+    frac.CoordinatesCell0D.push_back({4,0,0});
+    frac.CoordinatesCell0D.push_back({4,3,0});
+    frac.CoordinatesCell0D.push_back({0,3,0});
+    frac.CoordinatesCell0D.push_back({0,0,0});
+
+
+    frac.NumberCell1D = 4; // Numero totale Cell1D
+    for (unsigned int i=0; i<4; i++)
+        frac.IdCell1D.push_back(i); // identificatori Cell1D --> intero positivo (dimensione 1)
+    frac.VerticesCell1D.push_back({0,1});
+    frac.VerticesCell1D.push_back({1,2});
+    frac.VerticesCell1D.push_back({2,3});
+    frac.VerticesCell1D.push_back({3,0});
+
+    frac.NumberCell2D = 1; // Numero totale Cell2D
+    frac.IdCell2D = {0}; // identificatori Cell2D --> intero positivo (dimensione 1)
+    frac.VerticesCell2D.push_back({0,1,2,3});
+    frac.EdgesCell2D.push_back({0,1,2,3});
+
+    double tolerance = 10000*numeric_limits<double>::epsilon();
+
+    list<unsigned int> internal_edges={};
+    list<unsigned int> external_edges={0,1,2,3};
+    unsigned int c=0;
+    unsigned int l=3;
+    bool v_in_extr1=true;
+    Vector3d ext1_tr(2,0,0);
+    unsigned int v=3;
+    vector<Vector2i> edge_to_cells={{0,-1}, {0,-1}, {0,-1}, {0,-1}};
+    vector<list<unsigned int>> ver_to_cells={{0},{0},{0},{0}};
+    list<unsigned int>::iterator it_l={frac.EdgesCell2D[c].begin()};
+    list<unsigned int>::iterator it_ver={frac.VerticesCell2D[c].begin()};
+    Vector<unsigned int, 2> expected(4,4);
+    Vector<unsigned int, 2> result(fun_dfn.BookSpecialCase_VE(frac, external_edges, internal_edges, edge_to_cells, ver_to_cells, c,
+                                                               l, v_in_extr1, ext1_tr, v, it_l, it_ver));
+    ASSERT_TRUE(result.isApprox(expected,1e-10));
+}
+
+TEST(BookCase_test,GeneralBookCase)
+{
+    PolygonalMesh frac;
+    frac.NumberCell0D = 4; // Numero totale Cell0D
+    for (unsigned int i=0; i<4; i++)
+        frac.IdCell0D.push_back(i); // identificatori Cell0D --> intero positivo (dimensione 1)
+    frac.CoordinatesCell0D.push_back({4,0,0});
+    frac.CoordinatesCell0D.push_back({4,3,0});
+    frac.CoordinatesCell0D.push_back({0,3,0});
+    frac.CoordinatesCell0D.push_back({0,0,0});
+
+
+    frac.NumberCell1D = 4; // Numero totale Cell1D
+    for (unsigned int i=0; i<4; i++)
+        frac.IdCell1D.push_back(i); // identificatori Cell1D --> intero positivo (dimensione 1)
+    frac.VerticesCell1D.push_back({0,1});
+    frac.VerticesCell1D.push_back({1,2});
+    frac.VerticesCell1D.push_back({2,3});
+    frac.VerticesCell1D.push_back({3,0});
+
+    frac.NumberCell2D = 1; // Numero totale Cell2D
+    frac.IdCell2D = {0}; // identificatori Cell2D --> intero positivo (dimensione 1)
+    frac.VerticesCell2D.push_back({0,1,2,3});
+    frac.EdgesCell2D.push_back({0,1,2,3});
+
+    double tolerance = 10000*numeric_limits<double>::epsilon();
+    list<unsigned int> internal_edges={};
+    list<unsigned int> external_edges={0,1,2,3};
+    vector<Vector2i> edge_to_cells={{0,-1}, {0,-1}, {0,-1}, {0,-1}};
+    vector<list<unsigned int>> ver_to_cells={{0},{0},{0},{0}};
+    unsigned int l10=0;
+    unsigned int l2=3;
+    Vector3d ext_tr(3,0,0);
+    unsigned int v0=3;
+    unsigned int v2=0;
+    bool edge_found0=false;
+    bool edge_found2=true;
+    Vector<bool,2> expected(true,true);
+    Vector<bool,2> result(fun_dfn.GeneralBookCase(frac, external_edges, internal_edges, edge_to_cells, ver_to_cells, l10, l2,
+                                                  ext_tr, v0, v2, edge_found0, edge_found2));
+    ASSERT_TRUE(result.isApprox(expected,1e-10));
+}
+
+TEST(BookCase_test,GeneralBookCaseVV)
+{
+    PolygonalMesh frac;
+    frac.NumberCell0D = 4; // Numero totale Cell0D
+    for (unsigned int i=0; i<4; i++)
+        frac.IdCell0D.push_back(i); // identificatori Cell0D --> intero positivo (dimensione 1)
+    frac.CoordinatesCell0D.push_back({4,0,0});
+    frac.CoordinatesCell0D.push_back({4,3,0});
+    frac.CoordinatesCell0D.push_back({0,3,0});
+    frac.CoordinatesCell0D.push_back({0,0,0});
+
+
+    frac.NumberCell1D = 4; // Numero totale Cell1D
+    for (unsigned int i=0; i<4; i++)
+        frac.IdCell1D.push_back(i); // identificatori Cell1D --> intero positivo (dimensione 1)
+    frac.VerticesCell1D.push_back({0,1});
+    frac.VerticesCell1D.push_back({1,2});
+    frac.VerticesCell1D.push_back({2,3});
+    frac.VerticesCell1D.push_back({3,0});
+
+    frac.NumberCell2D = 1; // Numero totale Cell2D
+    frac.IdCell2D = {0}; // identificatori Cell2D --> intero positivo (dimensione 1)
+    frac.VerticesCell2D.push_back({0,1,2,3});
+    frac.EdgesCell2D.push_back({0,1,2,3});
+
+    double tolerance = 10000*numeric_limits<double>::epsilon();
+    list<unsigned int> internal_edges={};
+    list<unsigned int> external_edges={0,1,2,3};
+    vector<Vector2i> edge_to_cells={{0,-1}, {0,-1}, {0,-1}, {0,-1}};
+    vector<list<unsigned int>> ver_to_cells={{0},{0},{0},{0}};
+    unsigned int l10=0;
+    unsigned int l2=0;
+    Vector3d ext_tr(4,0,0);
+    unsigned int v0=3;
+    unsigned int v2=0;
+    bool edge_found0=false;
+    bool edge_found2=false;
+    Vector<bool,2> expected(false,false);
+    Vector<bool,2> result(fun_dfn.GeneralBookCase(frac, external_edges, internal_edges, edge_to_cells, ver_to_cells, l10, l2,
+                                                   ext_tr, v0, v2, edge_found0, edge_found2));
+    ASSERT_TRUE(result.isApprox(expected,1e-10));
+}
+
+TEST(InternalExternal_test,ExternalEdge)
+{
+    PolygonalMesh frac;
+    frac.NumberCell0D = 4; // Numero totale Cell0D
+    for (unsigned int i=0; i<4; i++)
+        frac.IdCell0D.push_back(i); // identificatori Cell0D --> intero positivo (dimensione 1)
+    frac.CoordinatesCell0D.push_back({5,0,0});
+    frac.CoordinatesCell0D.push_back({6,3,0});
+    frac.CoordinatesCell0D.push_back({3,3,0});
+    frac.CoordinatesCell0D.push_back({2,0,0});
+
+
+    frac.NumberCell1D = 4; // Numero totale Cell1D
+    for (unsigned int i=0; i<4; i++)
+        frac.IdCell1D.push_back(i); // identificatori Cell1D --> intero positivo (dimensione 1)
+    frac.VerticesCell1D.push_back({0,1});
+    frac.VerticesCell1D.push_back({1,2});
+    frac.VerticesCell1D.push_back({2,3});
+    frac.VerticesCell1D.push_back({3,0});
+
+    frac.NumberCell2D = 1; // Numero totale Cell2D
+    frac.IdCell2D = {0}; // identificatori Cell2D --> intero positivo (dimensione 1)
+    frac.VerticesCell2D.push_back({0,1,2,3});
+    frac.EdgesCell2D.push_back({0,1,2,3});
+
+    double tolerance = 10000*numeric_limits<double>::epsilon();
+    list<unsigned int> internal_edges={};
+    list<unsigned int> external_edges={0,1,2,3};
+    unsigned int id_NEW_E=4;
+    unsigned int edge=2;
+    fun_dfn.InternalExternalEdge(id_NEW_E,edge,external_edges,internal_edges);
+    list<unsigned int> new_edge=external_edges;
+    list<unsigned int> expected={0,1,2,3,4};
+    ASSERT_EQ(new_edge,expected);
+}
+
+TEST(InternalExternal_test,InternalEdge)
+{
+    PolygonalMesh frac;
+    frac.NumberCell0D = 4; // Numero totale Cell0D
+    for (unsigned int i=0; i<4; i++)
+        frac.IdCell0D.push_back(i); // identificatori Cell0D --> intero positivo (dimensione 1)
+    frac.CoordinatesCell0D.push_back({1,-1,0});
+    frac.CoordinatesCell0D.push_back({1,1,0});
+    frac.CoordinatesCell0D.push_back({-1,1,0});
+    frac.CoordinatesCell0D.push_back({-1,-1,0});
+
+    frac.NumberCell1D = 5; // Numero totale Cell1D
+    for (unsigned int i=0; i<5; i++)
+        frac.IdCell1D.push_back(i); // identificatori Cell1D --> intero positivo (dimensione 1)
+    frac.VerticesCell1D.push_back({0,1});
+    frac.VerticesCell1D.push_back({1,2});
+    frac.VerticesCell1D.push_back({2,3});
+    frac.VerticesCell1D.push_back({3,0});
+    frac.VerticesCell1D.push_back({3,1});
+
+    frac.NumberCell2D = 2; // Numero totale Cell2D
+    frac.IdCell2D.push_back(0);
+    frac.IdCell2D.push_back(1);    // identificatori Cell2D --> intero positivo (dimensione 1)
+    frac.VerticesCell2D.push_back({0,1,3});
+    frac.VerticesCell2D.push_back({1,2,3});
+    frac.EdgesCell2D.push_back({0,4,3});
+    frac.EdgesCell2D.push_back({1,2,4});
+
+    double tolerance = 10000*numeric_limits<double>::epsilon();
+    list<unsigned int> internal_edges={4};
+    list<unsigned int> external_edges={0,1,2,3};
+    unsigned int id_NEW_E=5;
+    unsigned int edge=4;
+    fun_dfn.InternalExternalEdge(id_NEW_E,edge,external_edges,internal_edges);
+    list<unsigned int> new_edge=internal_edges;
+    list<unsigned int> expected={4,5};
+    ASSERT_EQ(new_edge,expected);
+}
+
+TEST(calculate_fracture_cuts_test,calculate_fracture_cuts_casocon1tracciapassante)
+{
+    Matrix3Xd frac_vertices(3,4);
+    frac_vertices << 4, 4, 0, 0,
+        0, 5, 5, 0,
+        0, 0, 0, 0;
+    list<unsigned int> p_traces={0};
+    list<unsigned int> np_traces={};
+    vector<Matrix<double,3,2>> traces_extremes;
+    Matrix<double, 3, 2> mat1;
+    mat1 << 4, 0,
+            3, 3,
+            0, 0;
+    traces_extremes.push_back(mat1);
+    double tol=10000*numeric_limits<double>::epsilon();
+    PolygonalMesh res=fun_dfn.calculate_fracture_cuts(frac_vertices,p_traces,np_traces,traces_extremes, tol);
+    unsigned int NumberCell0D=6;
+    vector<unsigned int> IdCell0D = {0,1,2,3,4,5};
+    vector<Vector3d> CoordinatesCell0D = {{4,0,0},{4,5,0},{0,5,0},{0,0,0},{4,3,0},{0,3,0}};
+
+    unsigned int NumberCell1D = 7;
+    vector<unsigned int> IdCell1D = {0,1,2,3,4,5,6};
+    vector<Vector2i> VerticesCell1D = {{0,4},{1,2},{2,5},{3,0},{4,1},{5,4},{5,3}};
+
+    unsigned int NumberCell2D = 2;
+    vector<unsigned int> IdCell2D = {0,1};
+    vector<list<unsigned int>> VerticesCell2D = {{0,4,5,3}, {4,1,2,5}};
+    vector<list<unsigned int>> EdgesCell2D = {{0,5,6,3}, {4,1,2,5}};
+    ASSERT_EQ(NumberCell0D,res.NumberCell0D);
+    ASSERT_EQ(IdCell0D,res.IdCell0D);
+    ASSERT_EQ(CoordinatesCell0D,res.CoordinatesCell0D);
+    ASSERT_EQ(NumberCell1D,res.NumberCell1D);
+    ASSERT_EQ(IdCell1D,res.IdCell1D);
+    ASSERT_EQ(VerticesCell1D,res.VerticesCell1D);
+    ASSERT_EQ(NumberCell2D,res.NumberCell2D);
+    ASSERT_EQ(IdCell2D,res.IdCell2D);
+    ASSERT_EQ(VerticesCell2D,res.VerticesCell2D);
+    ASSERT_EQ(EdgesCell2D,res.EdgesCell2D);
+}
+
+TEST(calculate_fracture_cuts_test,calculate_fracture_cuts_casocon1tracciaNONpassante)
+{
+    Matrix3Xd frac_vertices(3,4);
+    frac_vertices << 4, 4, 0, 0,
+                    0, 5, 5, 0,
+                    0, 0, 0, 0;
+    list<unsigned int> p_traces={};
+    list<unsigned int> np_traces={0};
+    vector<Matrix<double,3,2>> traces_extremes;
+    Matrix<double, 3, 2> mat1;
+    mat1 << 0, 2,
+            2, 2,
+            0, 0;
+    traces_extremes.push_back(mat1);
+    double tol=10000*numeric_limits<double>::epsilon();
+    PolygonalMesh res=fun_dfn.calculate_fracture_cuts(frac_vertices,p_traces,np_traces,traces_extremes, tol);
+    unsigned int NumberCell0D=6;
+    vector<unsigned int> IdCell0D = {0,1,2,3,4,5};
+    vector<Vector3d> CoordinatesCell0D = {{4,0,0},{4,5,0},{0,5,0},{0,0,0},{4,2,0},{0,2,0}};
+
+    unsigned int NumberCell1D = 7;
+    vector<unsigned int> IdCell1D = {0,1,2,3,4,5,6};
+    vector<Vector2i> VerticesCell1D = {{0,4},{1,2},{2,5},{3,0},{4,1},{5,4},{5,3}};
+
+    unsigned int NumberCell2D = 2;
+    vector<unsigned int> IdCell2D = {0,1};
+    vector<list<unsigned int>> VerticesCell2D = {{0,4,5,3}, {4,1,2,5}};
+    vector<list<unsigned int>> EdgesCell2D = {{0,5,6,3}, {4,1,2,5}};
+    ASSERT_EQ(NumberCell0D,res.NumberCell0D);
+    ASSERT_EQ(IdCell0D,res.IdCell0D);
+    ASSERT_EQ(CoordinatesCell0D,res.CoordinatesCell0D);
+    ASSERT_EQ(NumberCell1D,res.NumberCell1D);
+    ASSERT_EQ(IdCell1D,res.IdCell1D);
+    ASSERT_EQ(VerticesCell1D,res.VerticesCell1D);
+    ASSERT_EQ(NumberCell2D,res.NumberCell2D);
+    ASSERT_EQ(IdCell2D,res.IdCell2D);
+    ASSERT_EQ(VerticesCell2D,res.VerticesCell2D);
+    ASSERT_EQ(EdgesCell2D,res.EdgesCell2D);
+}
+
+TEST(calculate_fracture_cuts_test,calculate_fracture_cuts_casocon1tracciaNONpassantee1passante)
+{
+    Matrix3Xd frac_vertices(3,4);
+    frac_vertices << 4, 4, 0, 0,
+                    0, 5, 5, 0,
+                    0, 0, 0, 0;
+    list<unsigned int> p_traces={0};
+    list<unsigned int> np_traces={1};
+    vector<Matrix<double,3,2>> traces_extremes;
+    Matrix<double, 3, 2> mat1;
+    mat1 << 4, 0,
+            3, 3,
+            0, 0;
+    traces_extremes.push_back(mat1);
+    Matrix<double, 3, 2> mat2;
+    mat2 <<0, 2,
+            2, 2,
+            0, 0;
+    traces_extremes.push_back(mat2);
+    double tol=10000*numeric_limits<double>::epsilon();
+    PolygonalMesh res=fun_dfn.calculate_fracture_cuts(frac_vertices,p_traces,np_traces,traces_extremes, tol);
+    unsigned int NumberCell0D=8;
+    vector<unsigned int> IdCell0D = {0,1,2,3,4,5,6,7};
+    vector<Vector3d> CoordinatesCell0D = {{4,0,0},{4,5,0},{0,5,0},{0,0,0},{4,3,0},{0,3,0},{4,2,0},{0,2,0}};
+
+    unsigned int NumberCell1D = 10;
+    vector<unsigned int> IdCell1D = {0,1,2,3,4,5,6,7,8,9};
+    vector<Vector2i> VerticesCell1D = {{0,6},{1,2},{2,5},{3,0},{4,1},{5,4},{5,7}, {6,4}, {7,6}, {7,3}};
+
+    unsigned int NumberCell2D = 3;
+    vector<unsigned int> IdCell2D = {0,1,2};
+    vector<list<unsigned int>> VerticesCell2D = {{0,6,7,3}, {4,1,2,5}, {6,4,5,7}};
+    vector<list<unsigned int>> EdgesCell2D = {{0,8,9,3}, {4,1,2,5}, {7,5,6,8}};
+    ASSERT_EQ(NumberCell0D,res.NumberCell0D);
+    ASSERT_EQ(IdCell0D,res.IdCell0D);
+    ASSERT_EQ(CoordinatesCell0D,res.CoordinatesCell0D);
+    ASSERT_EQ(NumberCell1D,res.NumberCell1D);
+    ASSERT_EQ(IdCell1D,res.IdCell1D);
+    ASSERT_EQ(VerticesCell1D,res.VerticesCell1D);
+    ASSERT_EQ(NumberCell2D,res.NumberCell2D);
+    ASSERT_EQ(IdCell2D,res.IdCell2D);
+    ASSERT_EQ(VerticesCell2D,res.VerticesCell2D);
+    ASSERT_EQ(EdgesCell2D,res.EdgesCell2D);
+}
+TEST(calculate_fracture_cuts_test,calculate_fracture_cuts_casolibro)
+{
+    Matrix3Xd frac_vertices(3,4);
+    frac_vertices << 4, 4, 0, 0,
+                    0, 5, 5, 0,
+                    0, 0, 0, 0;
+    list<unsigned int> p_traces={0};
+    list<unsigned int> np_traces={};
+    vector<Matrix<double,3,2>> traces_extremes;
+    Matrix<double, 3, 2> mat1;
+    mat1 << 0, 0,
+            3, 1,
+            0, 0;
+    traces_extremes.push_back(mat1);
+    double tol=10000*numeric_limits<double>::epsilon();
+    PolygonalMesh res=fun_dfn.calculate_fracture_cuts(frac_vertices,p_traces,np_traces,traces_extremes, tol);
+    unsigned int NumberCell0D=6;
+    vector<unsigned int> IdCell0D = {0,1,2,3,4,5};
+    vector<Vector3d> CoordinatesCell0D = {{4,0,0},{4,5,0},{0,5,0},{0,0,0},{0,3,0},{0,1,0}};
+
+    unsigned int NumberCell1D = 6;
+    vector<unsigned int> IdCell1D = {0,1,2,3,4,5};
+    vector<Vector2i> VerticesCell1D = {{0,1},{1,2},{2,4},{3,0},{4,5},{5,3}};
+
+    unsigned int NumberCell2D = 1;
+    vector<unsigned int> IdCell2D = {0};
+    vector<list<unsigned int>> VerticesCell2D = {{0,1,2,4,5,3}};
+    vector<list<unsigned int>> EdgesCell2D = {{0,1,2,4,5,3}};
+    ASSERT_EQ(NumberCell0D,res.NumberCell0D);
+    ASSERT_EQ(IdCell0D,res.IdCell0D);
+    ASSERT_EQ(CoordinatesCell0D,res.CoordinatesCell0D);
+    ASSERT_EQ(NumberCell1D,res.NumberCell1D);
+    ASSERT_EQ(IdCell1D,res.IdCell1D);
+    ASSERT_EQ(VerticesCell1D,res.VerticesCell1D);
+    ASSERT_EQ(NumberCell2D,res.NumberCell2D);
+    ASSERT_EQ(IdCell2D,res.IdCell2D);
+    ASSERT_EQ(VerticesCell2D,res.VerticesCell2D);
+    ASSERT_EQ(EdgesCell2D,res.EdgesCell2D);
+}
 #endif
 
 //.inp

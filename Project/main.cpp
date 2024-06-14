@@ -11,7 +11,7 @@ int main(int argc, char ** argv)
     DFN dfn;
     DFN_functions fun_dfn;
 
-    //Lettura di tolleranza da command line
+    // Lettura di tolleranza da command line
     double tol = 0.0;
     if(argc == 2)
     {
@@ -27,7 +27,6 @@ int main(int argc, char ** argv)
     //Importazione fratture
 
     bool operazione = fun_dfn.ImportFractures("./DFN/FR200_data.txt", dfn);
-
 
     if (not operazione)
     {

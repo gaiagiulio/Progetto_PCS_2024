@@ -11,7 +11,7 @@ int main(int argc, char ** argv)
     DFN dfn;
     DFN_functions fun_dfn;
 
-    // Lettura di tolleranza da command line
+    //Lettura di tolleranza da command line
     double tol = 0.0;
     if(argc == 2)
     {
@@ -25,7 +25,9 @@ int main(int argc, char ** argv)
     chrono::steady_clock::time_point t_begin = chrono::steady_clock::now() ; // inizio a cronometrare
 
     //Importazione fratture
+
     bool operazione = fun_dfn.ImportFractures("./DFN/FR200_data.txt", dfn);
+
 
     if (not operazione)
     {
@@ -53,10 +55,12 @@ int main(int argc, char ** argv)
         cout << "Frattura " << id_frac<< " restituita \n" << endl;
     }
 
+
     chrono::steady_clock::time_point t_end = chrono::steady_clock::now() ; //fine cronometraggio
     double elapsed_time = chrono::duration_cast<chrono::milliseconds>(t_end - t_begin).count();
 
     cout << "Il tempo impiegato per trattare il DFN da " <<  dfn.NumberFractures << " fratture e': " << elapsed_time << " millisecondi"<< endl; // togli commento se vuoi visualizzare tempo impiega
+
 
     // Crea file da esportare in Paraview per visualizzare la PolygonalMesh generata con il taglio della frattura
     // Togliere il commentato se si vogliono creare i file

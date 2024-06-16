@@ -1,0 +1,5 @@
+# Number of Traces
+2
+# TraceId; FractureId1; FractureId2; X1; Y1; Z1; X2; Y2; Z2 
+0; 0; 1; 4; 5; 0; 4; 0; 0
+1; 0; 2; 2; 5; 0; 2; 4; 0

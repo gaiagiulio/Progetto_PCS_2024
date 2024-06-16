@@ -25,8 +25,7 @@ int main(int argc, char ** argv)
     chrono::steady_clock::time_point t_begin = chrono::steady_clock::now() ; // inizio a cronometrare
 
     //Importazione fratture
-
-    bool operazione = fun_dfn.ImportFractures("./DFN/FR200_data.txt", dfn);
+    bool operazione = fun_dfn.ImportFractures("./DFN/FR10_data.txt", dfn);
 
     if (not operazione)
     {

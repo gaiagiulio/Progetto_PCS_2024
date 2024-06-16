@@ -9,7 +9,7 @@ struct DFN_functions
 {
 /************************************************************* SECONDARY FUNCTIONS **************************************************************************/
 
-/**+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ GENERAL INLINE FUNCTIONS ++++++++++++++++++++++++++++++++++++++++**/
+/**+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ GENERAL FUNCTIONS ++++++++++++++++++++++++++++++++++++++++**/
 
 /** Restituisce vettore normale al piano passante per i 3 punti **/
     Vector3d NormalToPlane(Vector3d& p0,Vector3d& p1,Vector3d& p2);
@@ -153,8 +153,8 @@ struct DFN_functions
  *  edge_found0: bool. True se intersezione iniziale traccia è su un lato
  *  ver_found0: bool. True se intersezione iniziale traccia è in vertice esistente
  *  PARAMETRI PUNTO SUCCESSIVO TAGLIO
- *  l10: id lato successivo (non serve se edge_found2=true)
- *  v0: id vertice successivo (non serve se ver_found2=true)
+ *  l2: id lato successivo (non serve se edge_found2=true)
+ *  v2: id vertice successivo (non serve se ver_found2=true)
  *  s2: ascissa curvilinea di intersezione successiva
  *  edge_found2: bool. True se intersezione successiva traccia è su un lato
  *  ver_found2: bool. True se intersezione successiva traccia è in vertice esistente

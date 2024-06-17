@@ -1,20 +1,20 @@
 # Number of Fractures
 3
 # FractureId; NumVertices
-0; 3
+0; 4
 # Vertices
-0; 7; 0
-0; 0; 5
-0; 0; 0
+0; 7; 7; 0
+0; 0; 5; 5
+0; 0; 0; 0;
 # FractureId; NumVertices
 1; 4
+# Vertices
+4; 4; 4; 4;
+-1; -1; 7; 7
+-3: 2; 2; -3
+# FractureId; NumVertices
+2; 4
 # Vertices
 1; 1; 1; 1
 -1; -1; 2; 2
 -3; 3; 3; -3
-# FractureId; NumVertices
-2; 4
-# Vertices
-4; 4; 4; 4
--2; 4; 4; -1
-2; 2; -3; -3

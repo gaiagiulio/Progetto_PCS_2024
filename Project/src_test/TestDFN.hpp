@@ -13,7 +13,7 @@ double tolerance_PolygonalMesh = 1000*numeric_limits<double>::epsilon();
 TEST(ImportFractures_Test,ImportFractures)  //verifico che l'apertura del file di input per importare le fratture vada a buon fine
 {
     bool expected=true;
-    bool result=fun_dfn.ImportFractures("./test.txt",dfn);
+    bool result=fun_dfn.ImportFractures("./DFN/test.txt",dfn);
     ASSERT_TRUE(expected=result);
 }
 
@@ -36,7 +36,7 @@ TEST(Acissa_Test,Ascissa)  //testo la funzione che calcola l'ascissa curvilinea
     double expected1(2);
     double expected2(-2);
     double expected3(0);
-    bool operazione = fun_dfn.ImportFractures("./test.txt", dfn);
+    bool operazione = fun_dfn.ImportFractures("./DFN/test.txt", dfn);
     double s1=fun_dfn.ascissa_curvilinea(V_P0,t1);  //ascissa curvilinea positiva
     double s2=fun_dfn.ascissa_curvilinea(V_P0,t2);  //ascissa curvilinea negativa
     double s3=fun_dfn.ascissa_curvilinea(Ve_P0,t1);  //ascissa curvilinea nulla
@@ -63,7 +63,7 @@ TEST(Intersection_Test, NoIntersection) //verifico il caso in cui la retta non i
     Vector3d t(1,2,0);
     Vector3d n(0,0,1);
     Vector4d expected(0,0,0,1);
-    bool operazione = fun_dfn.ImportFractures("./test.txt", dfn);
+    bool operazione = fun_dfn.ImportFractures("./DFN/test.txt", dfn);
     Vector4d result=fun_dfn.IntersectionFractureWithLine(dfn,0,P0,t,n);
     ASSERT_TRUE(result.isApprox(expected,tolerance_dfn));
 }
@@ -74,7 +74,7 @@ TEST(Intersection_Test, IntersectionInVertice)  //verifico il caso in cui la ret
     Vector3d t(1/2,1/4,0);
     Vector3d n(0,0,1);
     Vector4d expected(0,0,1,1);
-    bool operazione = fun_dfn.ImportFractures("./test.txt", dfn);
+    bool operazione = fun_dfn.ImportFractures("./DFN/test.txt", dfn);
     Vector4d result=fun_dfn.IntersectionFractureWithLine(dfn,1,P0,t,n);
     ASSERT_EQ(expected[2],result[2]);
 }
@@ -85,7 +85,7 @@ TEST(Intersection_Test, IntersectionTwoEdges)  //verifico il caso in cui la rett
     Vector3d t(1,1,0);
     Vector3d n(0,0,1);
     Vector4d expected(-1,2,1,1);
-    bool operazione = fun_dfn.ImportFractures("./test.txt", dfn);
+    bool operazione = fun_dfn.ImportFractures("./DFN/test.txt", dfn);
     Vector4d result=fun_dfn.IntersectionFractureWithLine(dfn,2,P0,t,n);
     ASSERT_TRUE(result.isApprox(expected,tolerance_dfn));
 }
@@ -96,7 +96,7 @@ TEST(Intersection_Test, BookCase_firstVectice)  //verifico il "caso libro", cio√
     Vector3d t(1,1,0);
     Vector3d n(0,0,1);
     Vector4d expected(0,2,1,0);
-    bool operazione = fun_dfn.ImportFractures("./test.txt", dfn);
+    bool operazione = fun_dfn.ImportFractures("./DFN/test.txt", dfn);
     Vector4d result=fun_dfn.IntersectionFractureWithLine(dfn,3,P0,t,n);
     ASSERT_TRUE(result.isApprox(expected,tolerance_dfn));
 }
@@ -107,7 +107,7 @@ TEST(Intersection_Test, BookCase)  //verifico il "caso libro", cio√® quello in c
     Vector3d t(1,1,0);
     Vector3d n(0,0,1);
     Vector4d expected(0,1,1,0);
-    bool operazione = fun_dfn.ImportFractures("./test.txt", dfn);
+    bool operazione = fun_dfn.ImportFractures("./DFN/test.txt", dfn);
     Vector4d result=fun_dfn.IntersectionFractureWithLine(dfn,4,P0,t,n);
     ASSERT_TRUE(result.isApprox(expected,tolerance_dfn));
 }
@@ -118,7 +118,7 @@ TEST(Intersection_Test, IntersectionVerticeEdge)  //verifico il caso in cui la r
     Vector3d t(0,1,0);
     Vector3d n(0,0,1);
     Vector4d expected(-1,1,1,1);
-    bool operazione = fun_dfn.ImportFractures("./test.txt", dfn);
+    bool operazione = fun_dfn.ImportFractures("./DFN/test.txt", dfn);
     Vector4d result=fun_dfn.IntersectionFractureWithLine(dfn,5,P0,t,n);
     ASSERT_TRUE(result.isApprox(expected,tolerance_dfn));
 }
@@ -126,12 +126,12 @@ TEST(Intersection_Test, IntersectionVerticeEdge)  //verifico il caso in cui la r
 TEST(CalculateTraces_Test, CalculateTraces)  //verifico l'inserimento delle tracce passanti e non nello struct dfn
 {
     DFN dfn;
-    bool operazione=fun_dfn.ImportFractures("./test2.txt",dfn);
+    bool operazione=fun_dfn.ImportFractures("./DFN/test2.txt",dfn);
     fun_dfn.calculateTraces(dfn);
-    vector<unsigned int> IdTraces={{0},{1}}; // Identificatori tracce --> intero positivo (dimensione 1)
-    vector<Vector2i> FractureTraces = {{0,1},{0,2}}; // Fratture associate a traccia
-    vector<Vector<bool,2>> TipsTraces = {{false,true},{true,true}}; // Tips booleano false= passante, true= non passante
-    vector<Matrix<double,3,2>> VerticesTraces; // vettore con estremi traccia
+    vector<unsigned int> IdTraces={{0},{1}};
+    vector<Vector2i> FractureTraces = {{0,1},{0,2}};
+    vector<Vector<bool,2>> TipsTraces = {{false,true},{true,true}};
+    vector<Matrix<double,3,2>> VerticesTraces;
     Matrix<double,3,2> mat1;
     mat1 << 4, 4,
         5, 0,
@@ -142,9 +142,9 @@ TEST(CalculateTraces_Test, CalculateTraces)  //verifico l'inserimento delle trac
         0, 0;
     VerticesTraces.push_back(mat1);
     VerticesTraces.push_back(mat2);
-    vector<double> LengthTraces = {25,4}; // vettore con lunghezza tracce
-    vector<list<unsigned int>> P_Traces = {{0}}; // Lista di identificatori tracce passanti di frattura ordinati per lunghezza
-    vector<list<unsigned int>> NP_Traces = {{1}}; // Lista di identificatori tracce NON passanti di frattura ordinati per lunghezza
+    vector<double> LengthTraces = {25,4};
+    vector<list<unsigned int>> P_Traces = {{0}};
+    vector<list<unsigned int>> NP_Traces = {{1}};
     ASSERT_EQ(IdTraces,dfn.IdTraces);
     ASSERT_EQ(FractureTraces,dfn.FractureTraces);
     ASSERT_EQ(TipsTraces,dfn.TipsTraces);
@@ -155,7 +155,7 @@ TEST(CalculateTraces_Test, CalculateTraces)  //verifico l'inserimento delle trac
 TEST(InsertSortedTraces_test,InsertSortedTraces)
 {
     DFN dfn;
-    bool result=fun_dfn.ImportFractures("./test3.txt",dfn);
+    bool result=fun_dfn.ImportFractures("./DFN/test3.txt",dfn);
     fun_dfn.calculateTraces(dfn);
     unsigned int frac=0;
     unsigned int id_tr=1;
@@ -169,7 +169,7 @@ TEST(InsertSortedTraces_test,InsertSortedTraces)
 TEST(PrintTraces_test, Print1tracciapassante)
 {
     DFN dfn;
-    bool exportDFN =fun_dfn.ImportFractures("./testPrintTraces.txt", dfn);
+    bool exportDFN =fun_dfn.ImportFractures("./DFN/testPrintTraces.txt", dfn);
     fun_dfn.calculateTraces(dfn);
     string outputFile1 ="OutputTraces.txt";
     fun_dfn.PrintTraces(outputFile1,dfn);
@@ -178,7 +178,7 @@ TEST(PrintTraces_test, Print1tracciapassante)
 TEST(PrintSortedFractureTraces_test, Print1tracciapassantee1nonpassante)
 {
     DFN dfn;
-    bool exportDFN =fun_dfn.ImportFractures("./testPrintTraces.txt", dfn);
+    bool exportDFN =fun_dfn.ImportFractures("./DFN/testPrintTraces.txt", dfn);
     fun_dfn.calculateTraces(dfn);
     string outputFile2 ="OutputSortedTraces.txt";
     fun_dfn.PrintSortedFractureTraces(outputFile2,dfn);

@@ -24,7 +24,7 @@ int main(int argc, char ** argv)
 
     chrono::steady_clock::time_point t_begin = chrono::steady_clock::now() ; // inizio a cronometrare
 
-    //Importazione fratture
+    // //Importazione fratture
     bool operazione = fun_dfn.ImportFractures("./DFN/FR10_data.txt", dfn);
 
     if (not operazione)
@@ -57,14 +57,14 @@ int main(int argc, char ** argv)
     chrono::steady_clock::time_point t_end = chrono::steady_clock::now() ; //fine cronometraggio
     double elapsed_time = chrono::duration_cast<chrono::milliseconds>(t_end - t_begin).count();
 
-    cout << "Il tempo impiegato per trattare il DFN da " <<  dfn.NumberFractures << " fratture e': " << elapsed_time << " millisecondi"<< endl; // togli commento se vuoi visualizzare tempo impiega
+    // cout << "Il tempo impiegato per trattare il DFN da " <<  dfn.NumberFractures << " fratture e': " << elapsed_time << " millisecondi"<< endl; // togli commento se vuoi visualizzare tempo impiega
 
 
     // Crea file da esportare in Paraview per visualizzare la PolygonalMesh generata con il taglio della frattura
     // Togliere il commentato se si vogliono creare i file
 
     // Lettura da terminale di id delle fratture per cui creare i file (imposta "Run in terminal" in Projects per poter scrivere in input da terminale)
-    /**cout << "Inserisci gli id delle fratture per cui creare i file da esportare su Paraview (andando a capo dopo ogni id e termmina con F): " << endl;
+    cout << "Inserisci gli id delle fratture per cui creare i file da esportare su Paraview (andando a capo dopo ogni id e termmina con F): " << endl;
     unsigned int ID;
     list<unsigned int> fracture_to_print={};
     while (cin >> ID )
@@ -75,7 +75,7 @@ int main(int argc, char ** argv)
         unsigned int id_frac= *(it_frac); // id frattura per cui creare i file
         cout << "Creo file per frattura " << id_frac <<endl;
         CreateMeshFiles(cutted_fractures[id_frac],id_frac); // Crea file per la frattura id_frac
-    }**/
+    }
 
     return 0;
 }
